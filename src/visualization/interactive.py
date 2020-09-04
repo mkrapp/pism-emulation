@@ -12,7 +12,7 @@ def main():
     # here goes the main part
     fnm_in = sys.argv[1]
     with open(fnm_in, "rb") as f:
-        [_,parameters,time,y_name,miny,maxy,_,_] = pickle.load(f)
+        [_,parameters,time,y_name,miny,maxy,_,_,_] = pickle.load(f)
 
     miny = -0.1
     maxy = 0.5
@@ -51,15 +51,15 @@ def main():
     gpe = GaussianProcessEmulator()
     gpe.load("./models/")
     def model_update(c,scen):
-        X = np.zeros((nt,n_params+2))
+        X = np.zeros((nt,n_params+3))
         this_forc = scen["global_mean_temperature"]#.values
-        #x1 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
-        this_forc -= this_forc.iloc[0]
-        this_forc = this_forc.cumsum()
+        x1 = this_forc
+        x2 = this_forc.cumsum()
+        x2 -= x2.iloc[0]
+        x3 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
         for i,t in enumerate(time):
             X[i,:n_params] = c
-            #X[i,n_params:] = [this_forc.loc[t],x1.loc[t]]
-            X[i,n_params:] = [this_forc.loc[t],time[i]-time[0]]
+            X[i,n_params:] = [x1.loc[t],x2.loc[t],x3.loc[t]]
         y_pred, _ = gpe.predict(X)
         y_pred = y_pred[:,0] - y_pred[0,0]
 

@@ -13,7 +13,7 @@ def main():
     # here goes the main part
     fnm_in = sys.argv[1]
     with open(fnm_in, "rb") as f:
-        [forcs,parameters,time,y_name,miny,maxy,ys,df] = pickle.load(f)
+        [forcs,parameters,time,y_name,miny,maxy,ys,X,df] = pickle.load(f)
     fnm_in = sys.argv[2]
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
@@ -73,24 +73,23 @@ def main():
     for scen in [rcp26,rcp85]:
         newY = []
         this_forc = scen["global_mean_temperature"]
-        #x1 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
-        this_forc -= this_forc.iloc[0]
-        this_forc = this_forc.cumsum()
+        x1 = this_forc
+        x2 = this_forc.cumsum()
+        x2 -= x2.iloc[0]
+        x3 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
         for c in tqdm(orig_combinations):
-            X = np.zeros((nt,n_params+2))
+            X = np.zeros((nt,n_params+3))
             for t in range(nt):
                 X[t,:n_params] = c
-                #X[t,n_params:] = [this_forc.loc[t],x1.loc[t]]
-                X[t,n_params:] = [this_forc.iloc[t],time[t]-time[0]]
+                X[t,n_params:] = [x1.iloc[t],x2.iloc[t],x3.iloc[t]]
             y_pred, _ = gpe.predict(X)
             y_pred = y_pred[:,0]
             origY.append(y_pred)
         for c in tqdm(combinations_predict):
-            X = np.zeros((nt,n_params+2))
+            X = np.zeros((nt,n_params+3))
             for t in range(nt):
                 X[t,:n_params] = c
-                #X[t,n_params:] = [this_forc.loc[t],x1.loc[t]]
-                X[t,n_params:] = [this_forc.iloc[t],time[t]-time[0]]
+                X[t,n_params:] = [x1.iloc[t],x2.iloc[t],x3.iloc[t]]
             y_pred, _ = gpe.predict(X)
             y_pred = y_pred[:,0]
             for d in use_decades:

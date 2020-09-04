@@ -52,6 +52,7 @@ class GaussianProcessEmulator:
 
     def __init__(self):
         self.model = None
+        self.kernel = None
 
     def initialize(self,X,y,method,test_size=0.2,maxiter=1000,learning_rate=1e-3,scale_X=True,random_state=42,multiple_kernel_dims=False):
         self.method = method
@@ -77,6 +78,7 @@ class GaussianProcessEmulator:
             else:
                 kernels *= k()
 
+        self.kernel = kernels
         self.logf = []
 
         # training/test split

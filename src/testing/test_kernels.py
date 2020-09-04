@@ -42,7 +42,7 @@ parameters = list(df.columns.get_level_values(0).unique().values)
 parameters.remove("scenario")
 y_name = dependent_variables[0]
 print(y_name)
-idx = np.random.randint(low=0,high=32,size=16)
+idx = np.random.randint(low=0,high=162,size=64)
 n_params = len(parameters)
 X = np.zeros((len(idx)*nt,n_params+2)).astype(float)
 y = np.zeros((len(idx)*nt)).astype(float)
@@ -62,9 +62,9 @@ for n,i in enumerate(idx):
     this_y = this_df.values
     x = this_df.index
     #axes[0].plot(this_forc.values,this_y,alpha=0.75)
-    l, = axes[0].plot(x,this_y,alpha=0.75)
+    #l, = axes[0].plot(x,this_y,alpha=0.75)
     #l, = axes[0].plot(x,this_forc,alpha=0.75)
-    #l, = axes[0].plot(this_forc,this_y,alpha=0.75)
+    l, = axes[0].plot(this_forc,this_y,alpha=0.75)
     colors.append(l.get_color())
     this_params = []
     for p in parameters:
@@ -82,7 +82,7 @@ axes[0].set_title(y_name)
 #fig.savefig("slr_gradient.png",dpi=150)
 print(this_forc)
 
-k = Constant() + SquaredExponential()#ChangePoints([Linear(),ExponentialDecay(alpha=0.1)],[5])
+#k = Constant() + SquaredExponential()#ChangePoints([Linear(),ExponentialDecay(alpha=0.1)],[5])
 #k = ChangePoints([Linear(),Constant()],[5],steepness=1) * ExponentialDecay()#ChangePoints([Linear(),ExponentialDecay(alpha=0.1)],[5])
 #k = ChangePoints([SquaredExponential(lengthscales=0.5),SquaredExponential(lengthscales=5)],[0],steepness=1)*SquaredExponential()
 #k = Constant()
@@ -93,9 +93,9 @@ k = Constant() + SquaredExponential()#ChangePoints([Linear(),ExponentialDecay(al
 #print(X.shape)
 #plotkernelfunction(k, axes[1], other=0.0)
 #plotkernelsample(k, axes[2])
-xx = np.linspace(-10, 10, 100)[:, None]
-im = axes[3].matshow(k(xx,xx))
-plt.colorbar(im,ax=axes[3],shrink=0.8)
+#xx = np.linspace(-10, 10, 100)[:, None]
+#im = axes[3].matshow(k(xx,xx))
+#plt.colorbar(im,ax=axes[3],shrink=0.8)
 #plt.show()
 #sys.exit()
 
@@ -106,11 +106,15 @@ gpe = GaussianProcessEmulator()
 #user_kernels = "Constant() * SquaredExponential(active_dims=[0]) * SquaredExponential(active_dims=[1]) * SquaredExponential(active_dims=[2]) * SquaredExponential(active_dims=[3]) * SquaredExponential(active_dims=[4]) * ExponentialDecay(active_dims=[5])" # * Linear(active_dims=[5])"
 #user_kernels = "Constant() + SquaredExponential(active_dims=[0,1,2,3]) * Linear(active_dims=[4]) * ExponentialDecay(active_dims=[5])"
 #user_kernels = "Linear(active_dims=[6])*(Constant(active_dims=[0,1,2,3,4])*SquaredExponential(active_dims=[0,1,2,3])*ExponentialDecay(active_dims=[4]) + Constant(active_dims=[0,1,2,3,4])*SquaredExponential(active_dims=[0,1,2,3,4]))"
-user_kernels = "Constant() + SquaredExponential()"
-gpe.initialize(X,y,method="user=%s"%user_kernels,maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=False)
-#gpe.initialize(X,y,method="non-linear",maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=True)
+user_kernels = "Constant() + SquaredExponential(active_dims=[0,1,2,3]) * SquaredExponential(active_dims=[4,5])"
+gpe.initialize(X,y,method="user=%s"%user_kernels,maxiter=1000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=False)
+##gpe.initialize(X,y,method="non-linear",maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=True)
 gpe.training()
 gpe.summary()
+#gpe.save("./models/")
+#gpe.load("./models/")
+im = axes[3].matshow(gpe.kernel(X,X))
+plt.colorbar(im,ax=axes[3],shrink=0.8)
 y_pred, y_std = gpe.predict(X)
 print(y_pred.shape)
 y_pred = y_pred
@@ -118,7 +122,7 @@ y_std  = y_std
 y_std = y_std**0.5
 for n,i in enumerate(idx):
     t = range(n*nt,(n+1)*nt)
-    #x = forcs[n]
+    x = forcs[n]
     axes[0].plot(x,y_pred[t,0],ls='--',c=colors[n],alpha=0.75)
     axes[0].fill_between(x,y_pred[t,0]-2*y_std[t,0],y_pred[t,0]+2*y_std[t,0],lw=0,alpha=0.25,color=colors[n])
 plt.show()
