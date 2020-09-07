@@ -23,8 +23,8 @@ def main():
     rcp85 = scenarios['rcp85']
     nparams = len(df.T)
     nt = len(rcp26)
-    nruns = int(len(df)/2)
-    n_exps = len(df)
+    n_exps = len(ys)
+    nruns = int(n_exps/2)
     print(nruns)
 
     nt = len(time)

@@ -7,6 +7,7 @@ import os.path
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from scipy.signal import savgol_filter
 
 def load(fnm):
     df = pd.read_csv(fnm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1)
@@ -33,12 +34,24 @@ def main():
         print("\t"+var)
         fnm = "data/external/gmt/global_tas_Amon_NorESM1-M_%s_r1i1p1.dat"%(scenario)
         this_df = load(fnm)
+        this_df.loc[:] = savgol_filter(this_df, 51, 3)
         forcings.append(this_df.loc[time].values)
     iterables = [scenarios,variables+["global_mean_temperature"]]
     multi_index = pd.MultiIndex.from_product(iterables, names=['scenario', 'variable'])
     forcings = np.array(forcings).T
     df_forcings = pd.DataFrame(forcings,index=time.astype(int),columns=multi_index)
     df_forcings.index.name="year"
+
+    #ax = plt.subplot(1,1,1)
+    #for scenario in scenarios:
+    #    fnm = "data/external/gmt/global_tas_Amon_NorESM1-M_%s_r1i1p1.dat"%(scenario)
+    #    x = load(fnm)
+    #    time = x.index
+    #    l, = ax.plot(time,x)
+    #    x = savgol_filter(x, 51, 3)
+    #    ax.plot(time,x,ls='--',c=l.get_color())
+    #plt.show()
+    #sys.exit()
 
     ## forcings (GMT only)
     #forcings = []

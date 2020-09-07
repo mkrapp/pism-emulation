@@ -32,6 +32,7 @@ def main():
 
     nt = len(time)
     n_expid = df_timeseries.columns.get_level_values(0).unique().values
+    n_expid = np.delete(n_expid, [5,86,32,113,59,140])
     n = int(len(n_expid)/2)
     for i in range(n):
         # RCP2.6

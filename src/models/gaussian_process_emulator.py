@@ -62,7 +62,7 @@ class GaussianProcessEmulator:
         self.num_train_data = int((1-test_size)*self.N)
         self.learning_rate = learning_rate
         self.num_features = X.shape[1]
-        self.num_induce = 20*self.num_features
+        self.num_induce = 100*self.num_features
 
         if method[:4] == "user":
             kernels = eval(method[5:])

@@ -40,12 +40,18 @@ def main():
 
 
     y_name = dependent_variables[0]
-    y_name2 = dependent_variables[6]
+    y_name2 = dependent_variables[3]
 
     dt = time[1]-time[0]
 
     fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(13,8))
     axes = axes.flatten()
+
+    suspects = np.array([
+            [1.2,0.42,0.5,15.0],
+            [2.4,0.42,0.5,15.0],
+            [4.8,0.42,0.5,15.0],
+            ])
 
     n_params = len(parameters)
     nt = len(time)
@@ -55,24 +61,35 @@ def main():
         this_forc = df_forcings[df["scenario"].loc[i]]["global_mean_temperature"]#.values.flatten()
         #this_forc -= this_forc.iloc[0]
         this_y = df_timeseries[(i, y_name)].iloc[:].values
-        #this_y -= this_y[0] # set start value to zero
-        #this_y *= -1.
+        this_y -= this_y[0] # set start value to zero
+        this_y *= -1.
+        #this_y = np.gradient(this_y)
         x = time
         x = df_timeseries[(i, y_name2)].cumsum().iloc[:].values
+        #x = df_timeseries[(i, y_name2)].iloc[:].values
         #x = this_forc.cumsum()
         #y_name2 = "global_mean_temperature"
-        l, = axes[i].plot(x,this_y)
+        l, = axes[i].plot(x,this_y,alpha=0.75)#,ls='',marker='.',mew=0)
         # RCP8.5
         this_forc = df_forcings[df["scenario"].loc[i+n]]["global_mean_temperature"]#.values.flatten()
         #this_forc -= this_forc.iloc[0]
         this_y = df_timeseries[(i+n, y_name)].iloc[:].values
-        #this_y -= this_y[0] # set start value to zero
-        #this_y *= -1.
+        this_y -= this_y[0] # set start value to zero
+        this_y *= -1.
+        #this_y = np.gradient(this_y)
         x = time
         x = df_timeseries[(i+n, y_name2)].cumsum().iloc[:].values
+        #x = df_timeseries[(i+n, y_name2)].iloc[:].values
         #x = this_forc.cumsum()
-        l, = axes[i].plot(x,this_y)
-        axes[i].set_title(",".join([str(p) for p in df.loc[i]][1:]),fontsize=6,va='top')
+        l, = axes[i].plot(x,this_y,alpha=0.75)#,ls='',marker='.',mew=0)
+        title = ",".join([str(p) for p in df.loc[i]][1:])
+        set_is_weird = next((True for elem in suspects if np.array_equal(elem, df.loc[i][1:])), False)
+        if set_is_weird:
+            print(i,i+n)
+            print(title)
+            axes[i].plot(0.95,0.9,ls='',marker='*',c='red',mew=0,transform=axes[i].transAxes)
+        axes[i].set_title(title,fontsize=6,va='top')
+        #axes[i].set_xscale("symlog")
     fig.suptitle("%s ~\n"%y_name+r"$\int$%s"%y_name2+"\n%d-%d"%(time[0],time[-1]),y=0.98)
 
     plt.tight_layout()

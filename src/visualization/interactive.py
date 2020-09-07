@@ -8,13 +8,40 @@ sys.path.append("src/models/")
 from gaussian_process_emulator import GaussianProcessEmulator
 from tqdm import tqdm
 
+def read_slater2020():
+    fnm = "data/external/41558_2020_893_MOESM2_ESM.xlsx"
+    xlsx = pd.ExcelFile(fnm)
+    imbie = pd.read_excel(xlsx, 'IMBIE ', index_col=0)*1.e-3 # mm -> m
+    ar5mid = pd.read_excel(xlsx, 'AR5 Mid', skiprows=1, index_col=0)
+    ar5up  = pd.read_excel(xlsx, 'AR5 Upper', skiprows=1, index_col=0)
+    ar5lo = pd.read_excel(xlsx, 'AR5 Lower', skiprows=1, index_col=0)
+    return {
+            'IMBIE': {
+                'time': imbie.index,
+                'mean': imbie['Cumulative sea-level contribution (mm)'],
+                'stdv': imbie['Cumulative sea-level contribution error (mm)']
+                },
+            'RCP2.6': {
+                'time': ar5up.index,
+                'mid': ar5mid['RCP 2.6'],
+                'lo': ar5lo['RCP 2.6'],
+                'up': ar5up['RCP 2.6']
+                },
+            'RCP8.5': {
+                'time': ar5up.index,
+                'mid': ar5mid['RCP 8.5'],
+                'lo': ar5lo['RCP 8.5'],
+                'up': ar5up['RCP 8.5']
+                }
+            }
+
 def main():
     # here goes the main part
     fnm_in = sys.argv[1]
     with open(fnm_in, "rb") as f:
         [_,parameters,time,y_name,miny,maxy,_,_,_] = pickle.load(f)
 
-    miny = -0.1
+    miny = -0.005
     maxy = 0.5
 
     #print(gpr.kernel.get_params())
@@ -23,7 +50,7 @@ def main():
         _,_,scenarios = pickle.load(f)
     #scenarios -= 273.15
     start_year = 1970#2019#1951
-    end_year   = 2100#100#180#50
+    end_year   = 2100#100#100#180#50
     print(time)
     #maxy = 4.0
     #miny = -0.2
@@ -65,15 +92,18 @@ def main():
 
         return np.array(y_pred)
 
-    t_start = time==1976
-    t_end = time==2016
-    dslr_obs = 0.0139
-    #t_start = time==1992
+    #t_start = time==1976
     #t_end = time==2016
-    #dslr_obs = 0.02157
+    #dslr_obs = 0.0139
+    #t_start = time==1992
+    #t_end = time==2017
+    #dslr_obs = 0.01971
     #t_start = time==2007
     #t_end = time==2013
     #dslr_obs = 0.0146
+    t_start = time==1979
+    t_end = time==2013
+    dslr_obs = 0.0179
 
     fig1, ax1 = plt.subplots(1,1)
     plt.subplots_adjust(bottom=0.35)
@@ -101,6 +131,18 @@ def main():
     l5, = ax1.plot(x,y,'r-',lw=1)
     ax1.set_ylim(miny,maxy)
     ax1.legend(loc=2)
+
+    # plot imbie
+    xlsx = read_slater2020()
+    df_imbie = xlsx['IMBIE']
+    l, = ax1.plot(df_imbie['time'],df_imbie['mean'],c='k',zorder=5)
+    ax1.fill_between(df_imbie['time'],df_imbie['mean']-df_imbie['stdv'],df_imbie['mean']+df_imbie['stdv'],lw=0,alpha=0.25,color=l.get_color())
+    #df_rcp26 = xlsx['RCP2.6']
+    #df_rcp85 = xlsx['RCP8.5']
+    #l, = ax1.plot(df_rcp26['time'],df_rcp26['mid'],ls='--',c=l1.get_color(),zorder=2)
+    #ax1.fill_between(df_rcp26['time'],df_rcp26['lo'],df_rcp26['up'],lw=0,alpha=0.25,color=l.get_color())
+    #l, = ax1.plot(df_rcp85['time'],df_rcp85['mid'],ls='--',c=l2.get_color(),zorder=2)
+    #ax1.fill_between(df_rcp85['time'],df_rcp85['lo'],df_rcp85['up'],lw=0,alpha=0.25,color=l.get_color())
 
     axsia = fig1.add_axes([0.1, 0.1, 0.8, 0.03])
     axssa = fig1.add_axes([0.1, 0.15, 0.8, 0.03])
@@ -146,17 +188,17 @@ def main():
         #ax1.plot(time,y2,lw=1,color='grey',alpha=0.01,zorder=0)
         #ax1.plot(time,y3,lw=2,color='C4',alpha=0.01,zorder=0)
         if (dslr_obs-0.002 <= y1[t_end]-y1[t_start] <= dslr_obs+0.002):
-            ax1.plot(time,y1,lw=2,color='C0',alpha=0.75,zorder=1)
-            ax1.plot(time,y2,lw=2,color='C1',alpha=0.75,zorder=1)
+            ax1.plot(time,y1,lw=1,color='C0',alpha=0.25,zorder=1)
+            ax1.plot(time,y2,lw=1,color='C1',alpha=0.25,zorder=1)
             label = 1
             d = {"sia": sia, "ssa": ssa, "q": q, "phi": phi, "label": label}
             for i,x in enumerate(columns[1:]):
                 for j,y in enumerate(columns[:-1]):
                     if i>=j:
-                        ax2[i,j].plot(d[y],d[x],ls='',marker='.',color=colors[d["label"]],alpha=0.75,mew=0)
+                        ax2[i,j].plot(d[y],d[x],ls='',marker='.',color=colors[d["label"]],alpha=0.5,mew=0)
         else:
-            ax1.plot(time,y1,lw=1,color='grey',alpha=0.01,zorder=0)
-            ax1.plot(time,y2,lw=1,color='grey',alpha=0.01,zorder=0)
+            ax1.plot(time,y1,lw=0.1,color='grey',alpha=0.01,zorder=0)
+            ax1.plot(time,y2,lw=0.1,color='grey',alpha=0.01,zorder=0)
             label = 0
         l1.set_ydata(y1)
         l2.set_ydata(y2)
@@ -220,8 +262,8 @@ def main():
     l5.set_xdata(None)
     l5.set_ydata(None)
     fig1.tight_layout()
-    #fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    #fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
 if __name__ == "__main__":
     main()

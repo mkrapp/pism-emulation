@@ -44,14 +44,16 @@ y_name = dependent_variables[0]
 print(y_name)
 idx = np.random.randint(low=0,high=162,size=64)
 n_params = len(parameters)
-X = np.zeros((len(idx)*nt,n_params+2)).astype(float)
+X = np.zeros((len(idx)*nt,n_params+3)).astype(float)
 y = np.zeros((len(idx)*nt)).astype(float)
 colors = []
 forcs = []
 for n,i in enumerate(idx):
     this_forc = df_forcings[df["scenario"].loc[i]]["global_mean_temperature"]
-    this_forc -= this_forc.iloc[0]
-    this_forc = this_forc.cumsum()
+    x1 = this_forc
+    x2 = this_forc.cumsum()
+    x2 -= x2.iloc[0]
+    x3 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
     #this_forc = this_forc.ewm(halflife=10).mean()
     #x1 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
     #x2 = np.where(np.gradient(this_forc)==0,-1,1)
@@ -64,14 +66,14 @@ for n,i in enumerate(idx):
     #axes[0].plot(this_forc.values,this_y,alpha=0.75)
     #l, = axes[0].plot(x,this_y,alpha=0.75)
     #l, = axes[0].plot(x,this_forc,alpha=0.75)
-    l, = axes[0].plot(this_forc,this_y,alpha=0.75)
+    l, = axes[0].plot(np.cumsum(this_forc),this_y,alpha=0.75)
     colors.append(l.get_color())
     this_params = []
     for p in parameters:
         this_params.append(df.loc[i][p])
     for t in range(nt):
         X[n*nt+t,:n_params] = this_params
-        X[n*nt+t,n_params:] = [this_forc.iloc[t],time[t]-time[0]]
+        X[n*nt+t,n_params:] = [x1.iloc[t],x2.iloc[t],x3.iloc[t]]
         y[n*nt+t] = this_y[t]
     forcs.append(this_forc)
 axes[0].set_title(y_name)
@@ -107,6 +109,7 @@ gpe = GaussianProcessEmulator()
 #user_kernels = "Constant() + SquaredExponential(active_dims=[0,1,2,3]) * Linear(active_dims=[4]) * ExponentialDecay(active_dims=[5])"
 #user_kernels = "Linear(active_dims=[6])*(Constant(active_dims=[0,1,2,3,4])*SquaredExponential(active_dims=[0,1,2,3])*ExponentialDecay(active_dims=[4]) + Constant(active_dims=[0,1,2,3,4])*SquaredExponential(active_dims=[0,1,2,3,4]))"
 user_kernels = "Constant() + SquaredExponential(active_dims=[0,1,2,3]) * SquaredExponential(active_dims=[4,5])"
+user_kernels = "SquaredExponential(active_dims=[0,1,2,3])*SquaredExponential(active_dims=[4,5])*SquaredExponential(active_dims=[6])"# + SquaredExponential(active_dims=[4]) + SquaredExponential(active_dims=[5,6])"
 gpe.initialize(X,y,method="user=%s"%user_kernels,maxiter=1000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=False)
 ##gpe.initialize(X,y,method="non-linear",maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=True)
 gpe.training()
@@ -122,7 +125,7 @@ y_std  = y_std
 y_std = y_std**0.5
 for n,i in enumerate(idx):
     t = range(n*nt,(n+1)*nt)
-    x = forcs[n]
+    x = np.cumsum(forcs[n])
     axes[0].plot(x,y_pred[t,0],ls='--',c=colors[n],alpha=0.75)
     axes[0].fill_between(x,y_pred[t,0]-2*y_std[t,0],y_pred[t,0]+2*y_std[t,0],lw=0,alpha=0.25,color=colors[n])
 plt.show()
