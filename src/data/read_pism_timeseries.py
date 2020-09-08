@@ -90,6 +90,13 @@ def main():
     #q   = ["0.25","0.75"]
     #phi = ["5","15"]
 
+    flags = {
+            "sia": "stress_balance.sia.enhancement_factor",
+            "ssa": "stress_balance.ssa.enhancement_factor",
+            "q": "basal_resistance.pseudo_plastic.q",
+            "phi": "basal_yield_stress.mohr_coulomb.topg_to_phi.phi_min"
+            }
+
     combinations = list(itertools.product(*[scenarios,sia,ssa,q,phi]))
     print(len(combinations))
     d = {"scenario": [], "sia": [], "ssa": [], "q": [], "phi": []}
@@ -103,6 +110,18 @@ def main():
         #fnm2 = path2+"timeser_NorESM1-M-%s-pico2300_sia%s_ssa%s_q%s_phi%s.nc"%c
         nc1 = nc4.Dataset(fnm1,"r")
         nc2 = nc4.Dataset(fnm2,"r")
+        for fnm,nc in zip([fnm1,fnm2],[nc1,nc2]): # you could just assume this for the first file (fnm1), I guess
+            c_n = 1
+            c_dict = {}
+            pism_byte = nc.variables["pism_config"]
+            for c_name,flag in flags.items():
+                c_from_file = pism_byte.getncattr(flag)
+                #print(fnm,flag,c_from_file)
+                #print(c_name,c_from_file,c[c_n])
+                if (float(c_from_file) != float(c[c_n])):
+                    print("%s: Expected %s, got %s (from file'%s')"%(c_name, c[c_n],c_from_file,fnm))
+                c_n += 1
+                c_dict[c_name] = float(c_from_file)
         for var in variables:
             x1 = nc1.variables[var][:].squeeze()
             x2 = nc2.variables[var][:].squeeze()
@@ -114,10 +133,14 @@ def main():
         nc1.close()
         nc2.close()
         d["scenario"].append(c[0])
-        d["sia"].append(float(c[1]))
-        d["ssa"].append(float(c[2]))
-        d["q"].append(float(c[3]))
-        d["phi"].append(float(c[4]))
+        #d["sia"].append(float(c[1]))
+        #d["ssa"].append(float(c[2]))
+        #d["q"].append(float(c[3]))
+        #d["phi"].append(float(c[4]))
+        d["sia"].append(c_dict["sia"])
+        d["ssa"].append(c_dict["ssa"])
+        d["phi"].append(c_dict["phi"])
+        d["q"].append(c_dict["q"])
 
 
     df = pd.DataFrame(d)

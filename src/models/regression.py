@@ -102,7 +102,7 @@ def main():
     user_kernels = "Constant() + SquaredExponential(active_dims=[0,1,2,3])"# + SquaredExponential(active_dims=[4]) + SquaredExponential(active_dims=[5,6])"
     user_kernels = "SquaredExponential(active_dims=[0,1,2,3])*SquaredExponential(active_dims=[4,5])"# + SquaredExponential(active_dims=[4]) + SquaredExponential(active_dims=[5,6])"
     user_kernels = "SquaredExponential(active_dims=[0,1,2,3,4,5])"# + SquaredExponential(active_dims=[4]) + SquaredExponential(active_dims=[5,6])"
-    gpe.initialize(Xtrain,ytrain,method="user=%s"%user_kernels,maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=False,test_size=0.01)
+    gpe.initialize(Xtrain,ytrain,method="user=%s"%user_kernels,maxiter=10000,learning_rate=1e-2,scale_X=True,multiple_kernel_dims=False,n_induc_per_variable=100)
     gpe.training()
     gpe.summary()
     #gpe.load("./models/")

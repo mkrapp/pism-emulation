@@ -54,7 +54,7 @@ class GaussianProcessEmulator:
         self.model = None
         self.kernel = None
 
-    def initialize(self,X,y,method,test_size=0.2,maxiter=1000,learning_rate=1e-3,scale_X=True,random_state=42,multiple_kernel_dims=False):
+    def initialize(self,X,y,method,test_size=0.2,maxiter=1000,learning_rate=1e-3,scale_X=True,random_state=42,multiple_kernel_dims=False,n_induc_per_variable=100):
         self.method = method
         self.X = X
         self.y = y
@@ -62,7 +62,7 @@ class GaussianProcessEmulator:
         self.num_train_data = int((1-test_size)*self.N)
         self.learning_rate = learning_rate
         self.num_features = X.shape[1]
-        self.num_induce = 100*self.num_features
+        self.num_induce = n_induc_per_variable*self.num_features
 
         if method[:4] == "user":
             kernels = eval(method[5:])
