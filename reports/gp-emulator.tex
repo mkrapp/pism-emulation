@@ -1,0 +1,29 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\author{MK}
+\title{Gaussian Process Emulator for uncertainties in sea-level rise projection}
+\begin{document}
+
+\maketitle
+
+\section{Gaussian Process Regression}
+
+The emulator is based on Gaussian Process Regression (GPR).
+GPR is a non-parametric approach to fitting a function to a set of training data.
+One major benefit of GPR is that it can estimate not only the mean but also the variance, thus allowing for uncertainty estimates of the predicitons (i.e., a Bayesian approach).
+ 
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[scale=1]{figures/gp_constrain_slr.png}
+\includegraphics[scale=1]{figures/gp_constrain_parameter.png}
+\caption{Sea-level rise estimates from the emulator}
+\end{figure}
+
+
+\end{document}
