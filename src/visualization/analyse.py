@@ -40,7 +40,7 @@ def main():
 
 
     y_name = dependent_variables[0]
-    y_name2 = dependent_variables[3]
+    y_name2 = dependent_variables[4]
 
     dt = time[1]-time[0]
 
@@ -48,9 +48,9 @@ def main():
     axes = axes.flatten()
 
     suspects = np.array([
-            [1.2,0.42,0.5,15.0],
-            [2.4,0.42,0.5,15.0],
-            [4.8,0.42,0.5,15.0],
+            [1.2,0.425,0.5,15.0],
+            [2.4,0.425,0.5,15.0],
+            [4.8,0.425,0.5,15.0],
             ])
 
     n_params = len(parameters)

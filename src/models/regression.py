@@ -25,7 +25,7 @@ def main():
     #df_timeseries -= df_timeseries.iloc[0]
     n_expid = df_timeseries.columns.get_level_values(0).unique().values
     n_expid_train = n_expid
-    n_expid_train = np.delete(n_expid, [5,86,32,113,59,140])
+    #n_expid_train = np.delete(n_expid, [5,86,32,113,59,140])
     print(len(n_expid))
     dependent_variables = df_timeseries.columns.get_level_values(1).unique().values
     print(dependent_variables)
