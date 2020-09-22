@@ -5,7 +5,7 @@ import sys
 from scipy.signal import savgol_filter
 
 def load(fnm):
-    df = pd.read_csv(fnm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1)
+    df = pd.read_csv(fnm,delim_whitespace=True,comment='#',header=None,na_values=-999.9,index_col=0).dropna().mean(axis=1)
     return df
 
 def main():
