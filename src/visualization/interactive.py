@@ -39,19 +39,21 @@ def main():
     # here goes the main part
     fnm_in = sys.argv[1]
     with open(fnm_in, "rb") as f:
-        [_,parameters,time,y_name,miny,maxy,_,_,_] = pickle.load(f)
+        [_,parameters,time_train,y_name,miny,maxy,ys,_,_] = pickle.load(f)
 
-    miny = -0.05
-    maxy = 0.7
+    t0_train = time_train[0]
+
+    #miny = -0.05
+    #maxy = 0.7
 
     #print(gpr.kernel.get_params())
     fnm_in = sys.argv[2]
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
     start_year = 1970
-    end_year   = 2100
+    end_year   = 2300
     time0 = 1992
-    print(time)
+    print(time_train)
     nrandom = int(sys.argv[3])
     time = scenarios['rcp26'].loc[start_year:end_year].index
     print(time)
@@ -73,7 +75,7 @@ def main():
         this_forc = scen["global_mean_temperature"]
         x1 = this_forc
         x2 = this_forc.cumsum()
-        x2 -= x2.iloc[0]
+        x2 -= x2.loc[t0_train] # cumulative warming starts with first years of training data
         x3 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
         for i,t in enumerate(time):
             X[i,:n_params] = c
@@ -96,11 +98,16 @@ def main():
     t_start = time==1992
     t_end = time==2017
     dslr_obs_mean = 7.6*1e-3
-    dslr_obs_max  = (7.6+3.9)*1e-3
-    dslr_obs_min  = (7.6-3.9)*1e-3
+    uncert_factor = 2.
+    dslr_obs_max  = (7.6+uncert_factor*3.9)*1e-3
+    dslr_obs_min  = (7.6-uncert_factor*3.9)*1e-3
+    ddslr_obs_mean = (109)/360.e3 # Gt/a -> m/a
+    ddslr_obs_min  = (109 - uncert_factor*56)/360.e3 # Gt/a -> m/a
+    ddslr_obs_max  = (109 + uncert_factor*56)/360.e3 # Gt/a -> m/a
 
 
     fig1, ax1 = plt.subplots(1,1)
+    fig1r, ax1r = plt.subplots(1,1)
     #plt.subplots_adjust(bottom=0.35)
     limits = {}
     sia_val = 2.4
@@ -119,17 +126,35 @@ def main():
     l1, = ax1.plot(time,y1,lw=2,alpha=0.75,label='RCP2.6')
     l2, = ax1.plot(time,y2,lw=2,alpha=0.75,label='RCP8.5')
     l4, = ax1.plot([time[t_start],time[t_end]],[0.0,dslr_obs_mean],'k-',lw=1)
+    l4r, = ax1r.plot([time[t_start],time[t_end]],[0.0,ddslr_obs_mean],'k-',lw=1)
     x = [time[t_start],time[t_end],time[t_end],time[t_start],time[t_start]]
     y = [y1[t_start],y1[t_start],y1[t_end],y1[t_end],y1[t_start]]
-    l5, = ax1.plot(x,y,'r-',lw=1)
+    #l5, = ax1.plot(x,y,'r-',lw=1)
+    l1r, = ax1r.plot(time,np.gradient(y1),lw=2,alpha=0.75,label='RCP2.6')
+    l2r, = ax1r.plot(time,np.gradient(y2),lw=2,alpha=0.75,label='RCP8.5')
     ax1.set_ylim(miny,maxy)
+
+    # plot median and 2.5-95% CI from ensembles
+    n = int(len(ys)/2)
+    time_train = time_train[time_train<=time[-1]]
+    ys = np.array(ys)
+    print(ys.shape)
+    y_rcp26 = ys[:n,:len(time_train)]
+    y_rcp85 = ys[n:,:len(time_train)]
+    ax1.plot(time_train,np.percentile(y_rcp26,50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10,label='PISM (median)')
+    ax1r.plot(time_train,np.percentile(np.gradient(y_rcp26,axis=1),50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10,label='PISM (median)')
+    #ax1.fill_between(time_train,np.percentile(y_rcp26,2.5,axis=0),np.percentile(y_rcp26,97.5,axis=0),lw=0,alpha=0.1,color=l1.get_color(),zorder=-1)
+    ax1.plot(time_train,np.percentile(y_rcp85,50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10)
+    ax1r.plot(time_train,np.percentile(np.gradient(y_rcp85,axis=1),50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10)
+    #ax1.fill_between(time_train,np.percentile(y_rcp85,2.5,axis=0),np.percentile(y_rcp85,97.5,axis=0),lw=0,alpha=0.1,color=l2.get_color(),zorder=-1)
     ax1.legend(loc=2)
+    ax1r.legend(loc=2)
 
     # plot imbie
-    xlsx = read_slater2020()
-    df_imbie = xlsx['IMBIE']
-    l, = ax1.plot(df_imbie['time'],df_imbie['mean'],c='k',zorder=5)
-    ax1.fill_between(df_imbie['time'],df_imbie['mean']-df_imbie['stdv'],df_imbie['mean']+df_imbie['stdv'],lw=0,alpha=0.25,color=l.get_color())
+    #xlsx = read_slater2020()
+    #df_imbie = xlsx['IMBIE']
+    #l, = ax1.plot(df_imbie['time'],df_imbie['mean'],c='k',zorder=5)
+    #ax1.fill_between(df_imbie['time'],df_imbie['mean']-df_imbie['stdv'],df_imbie['mean']+df_imbie['stdv'],lw=0,alpha=0.25,color=l.get_color())
     #df_rcp26 = xlsx['RCP2.6']
     #df_rcp85 = xlsx['RCP8.5']
     #l, = ax1.plot(df_rcp26['time'],df_rcp26['mid'],ls='--',c=l1.get_color(),zorder=2)
@@ -147,7 +172,11 @@ def main():
     sl_q   = Slider(axq, 'q', limits["q"][0], limits["q"][1], valinit=q_val, valstep=0.01)
     sl_phi = Slider(axphi, 'phi', limits["phi"][0], limits["phi"][1], valinit=phi_val, valstep=0.1)
 
-    if (dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max):
+    slr_and_dslr = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+                   (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
+                   (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
+                   (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
+    if slr_and_dslr:
         label = 1
     else:
         label = 0
@@ -176,10 +205,16 @@ def main():
         phi = sl_phi.val
         y1 = model_update([sia,ssa,q,phi],rcp26)
         y2 = model_update([sia,ssa,q,phi],rcp85)
-        l5.set_ydata([y1[t_start],y1[t_start],y1[t_end],y1[t_end],y1[t_start]])
-        if (dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max):
+        #l5.set_ydata([y1[t_start],y1[t_start],y1[t_end],y1[t_end],y1[t_start]])
+        slr_and_dslr = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+                       (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
+                       (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
+                       (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
+        if slr_and_dslr:
             ax1.plot(time,y1,lw=1,color='C0',alpha=0.25,zorder=1)
             ax1.plot(time,y2,lw=1,color='C1',alpha=0.25,zorder=1)
+            ax1r.plot(time,np.gradient(y1),lw=1,color='C0',alpha=0.25,zorder=1)
+            ax1r.plot(time,np.gradient(y2),lw=1,color='C1',alpha=0.25,zorder=1)
             label = 1
             d = {"sia": sia, "ssa": ssa, "q": q, "phi": phi, "label": label}
             for i,x in enumerate(columns[1:]):
@@ -189,11 +224,16 @@ def main():
         else:
             ax1.plot(time,y1,lw=0.1,color='grey',alpha=0.01,zorder=0)
             ax1.plot(time,y2,lw=0.1,color='grey',alpha=0.01,zorder=0)
+            ax1r.plot(time,np.gradient(y1),lw=0.1,color='grey',alpha=0.01,zorder=0)
+            ax1r.plot(time,np.gradient(y2),lw=0.1,color='grey',alpha=0.01,zorder=0)
             label = 0
         l1.set_ydata(y1)
         l2.set_ydata(y2)
+        l1r.set_ydata(np.gradient(y1))
+        l2r.set_ydata(np.gradient(y2))
         fig1.canvas.draw_idle()
         fig2.canvas.draw_idle()
+        fig1r.canvas.draw_idle()
 
     sl_sia.on_changed(update)
     sl_ssa.on_changed(update)
@@ -228,8 +268,8 @@ def main():
             l2.set_ydata(None)
             l4.set_xdata(None)
             l4.set_ydata(None)
-            l5.set_xdata(None)
-            l5.set_ydata(None)
+            #l5.set_xdata(None)
+            #l5.set_ydata(None)
         elif button_hide.label.get_text() == "Show":
             button_hide.label.set_text("Hide")
             update(0)
@@ -241,12 +281,17 @@ def main():
     # save plot
     l1.set_ydata(None)
     l2.set_ydata(None)
+    l1r.set_ydata(None)
+    l2r.set_ydata(None)
     l4.set_xdata(None)
     l4.set_ydata(None)
-    l5.set_xdata(None)
-    l5.set_ydata(None)
+    l4r.set_xdata(None)
+    l4r.set_ydata(None)
+    #l5.set_xdata(None)
+    #l5.set_ydata(None)
     fig1.tight_layout()
     fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
 if __name__ == "__main__":

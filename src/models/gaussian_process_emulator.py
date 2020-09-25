@@ -99,7 +99,7 @@ class GaussianProcessEmulator:
         self.model = gpflow.models.SVGP(kernels, gpflow.likelihoods.Gaussian(), inducing_variable=Z, num_data=self.num_train_data)
         self.summary()
 
-        self.batch_size            = 128
+        self.batch_size            = 256
         self.prefetch_size         = tf.data.experimental.AUTOTUNE
         self.shuffle_buffer_size   = self.num_train_data // 2
         self.num_batches_per_epoch = self.num_train_data // self.batch_size
