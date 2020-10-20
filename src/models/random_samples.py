@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import gamma, norm, ttest_ind
-from gaussian_process_emulator import GaussianProcessEmulator
 import pickle
 import sys
 from tqdm import tqdm
@@ -17,6 +16,8 @@ def main():
     fnm_in = sys.argv[2]
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
+    with open("./models/gp_exact.pkl", "rb") as f:
+        gpe = pickle.load(f)
 
 
     rcp26 = scenarios['rcp26']
@@ -68,8 +69,6 @@ def main():
     use_decades = range(2040,2300,20)
     #use_decades = range(2030,2301,20)
     Y_decades = {'RCP2.6': {d: [] for d in use_decades}, 'RCP8.5': {d: [] for d in use_decades}}
-    gpe = GaussianProcessEmulator()
-    gpe.load("./models/")
     for scen in [rcp26,rcp85]:
         newY = []
         this_forc = scen["global_mean_temperature"]
@@ -82,16 +81,14 @@ def main():
             for t in range(nt):
                 X[t,:n_params] = c
                 X[t,n_params:] = [x1.iloc[t],x2.iloc[t],x3.iloc[t]]
-            y_pred, _ = gpe.predict(X)
-            y_pred = y_pred[:,0]
+            y_pred = gpe.predict(X)
             origY.append(y_pred)
         for c in tqdm(combinations_predict):
             X = np.zeros((nt,n_params+3))
             for t in range(nt):
                 X[t,:n_params] = c
                 X[t,n_params:] = [x1.iloc[t],x2.iloc[t],x3.iloc[t]]
-            y_pred, _ = gpe.predict(X)
-            y_pred = y_pred[:,0]
+            y_pred = gpe.predict(X)
             for d in use_decades:
                 idx = [t for t in range(nt) if time[t] == d][0]-1
                 if scen is rcp26:
@@ -107,10 +104,10 @@ def main():
         newY = np.array(newY)
         #newY = np.array(origY)
         s = 0
-        scen_color = "C2"
+        scen_color = "C0"
         scen_label = "RCP2.6"
         if scen is rcp85:
-            scen_color = "C4"
+            scen_color = "C1"
             scen_label = "RCP8.5"
         f_alpha = 0.3
         for p in [50,95]:
@@ -140,16 +137,16 @@ def main():
     sl_bins = np.arange(miny-sep/2,maxy+sep/2,sep)
     x = np.linspace(miny,maxy,1000)
     lines = {'RCP2.6': [], 'RCP8.5': []}
-    plot_empirical_hist = False
+    plot_empirical_hist = True#False
     for i,d in enumerate(use_decades[::-1]):
         xscale = 1 - i / (len(use_decades)*1.6)
         print(xscale)
         lw = 1.5 - i / (len(use_decades)*2)
         print(d,ttest_ind(Y_decades["RCP2.6"][d],Y_decades["RCP8.5"][d]))
         for scenario in ["RCP2.6","RCP8.5"]:
-            scen_color = "C2"
+            scen_color = "C0"
             if scenario =="RCP8.5":
-                scen_color = "C4"
+                scen_color = "C1"
             y = Y_decades_pism[scenario][d]
             #ax3[1].hist(y,bins=sl_bins,density=True,alpha=0.5,label=scenario,color=scen_color)
             loc, scale = norm.fit(y)
@@ -174,8 +171,8 @@ def main():
         if i==len(use_decades)-1:
             ax2.legend(loc=5)
     y_lines = range(len(use_decades))
-    ax2.plot(lines['RCP2.6'],y_lines,lw=1,color="C2",alpha=0.5,zorder=0)
-    ax2.plot(lines['RCP8.5'],y_lines,lw=1,color="C4",alpha=0.5,zorder=0)
+    ax2.plot(lines['RCP2.6'],y_lines,lw=1,color="C0",alpha=0.5,zorder=0)
+    ax2.plot(lines['RCP8.5'],y_lines,lw=1,color="C1",alpha=0.5,zorder=0)
     x0 = 0
     for x0 in [0,1,2,3,4]:
         ax2.plot([x0,x.mean()+xscale*(x0-x.mean())],[0,i],'k-',lw=0.5,alpha=0.75,zorder=0)
@@ -247,12 +244,12 @@ def main():
     ax[1].set_title("RCP8.5")
     ax[0].legend(loc=2)
     ax[0].text(-0.1, 0.0, y_name, ha='center', rotation="90", va='center', transform=ax[0].transAxes)
-    fig4, ax4 = plt.subplots(1,1,figsize=(8, 6))
-    for i in tqdm(range(n_exps)):
-        color = "C0"
-        if i > n_exps/2:
-            color = "C1"
-        ax4.plot(ys[i],origY[i],ls='',marker='.',mew=0,c=color,alpha=0.1)
+    #fig4, ax4 = plt.subplots(1,1,figsize=(8, 6))
+    #for i in tqdm(range(n_exps)):
+    #    color = "C0"
+    #    if i > n_exps/2:
+    #        color = "C1"
+    #    ax4.plot(ys[i],origY[i],ls='',marker='.',mew=0,c=color,alpha=0.1)
     plt.show()
     fig.savefig('reports/figures/gp_%s.png'%(y_name),dpi=300, bbox_inches='tight', pad_inches = 0.01)
 

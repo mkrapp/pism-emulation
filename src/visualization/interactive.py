@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RadioButtons
 import sys
 sys.path.append("src/models/")
-from gaussian_process_emulator import GaussianProcessEmulator
+#from gaussian_process_emulator import GaussianProcessEmulator
 from tqdm import tqdm
 
 def read_slater2020():
@@ -51,7 +51,7 @@ def main():
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
     start_year = 1970
-    end_year   = 2300
+    end_year   = 2299
     time0 = 1992
     print(time_train)
     nrandom = int(sys.argv[3])
@@ -68,8 +68,10 @@ def main():
 
     # widgets
     print(y_name)
-    gpe = GaussianProcessEmulator()
-    gpe.load("./models/")
+    with open("./models/gp_exact.pkl", "rb") as f:
+        gpe = pickle.load(f)
+    #gpe = GaussianProcessEmulator()
+    #gpe.load("./models/")
     def model_update(c,scen):
         X = np.zeros((nt,n_params+3))
         this_forc = scen["global_mean_temperature"]
@@ -80,9 +82,9 @@ def main():
         for i,t in enumerate(time):
             X[i,:n_params] = c
             X[i,n_params:] = [x1.loc[t],x2.loc[t],x3.loc[t]]
-        y_pred, _ = gpe.predict(X)
+        y_pred = gpe.predict(X)
         idx_diff = time0-start_year
-        y_pred = y_pred[:,0] - y_pred[idx_diff,0]
+        y_pred = y_pred - y_pred[idx_diff]
 
         return np.array(y_pred)
 
@@ -147,6 +149,12 @@ def main():
     ax1.plot(time_train,np.percentile(y_rcp85,50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10)
     ax1r.plot(time_train,np.percentile(np.gradient(y_rcp85,axis=1),50,axis=0),ls='--',c='k',alpha=0.75,lw=1,zorder=10)
     #ax1.fill_between(time_train,np.percentile(y_rcp85,2.5,axis=0),np.percentile(y_rcp85,97.5,axis=0),lw=0,alpha=0.1,color=l2.get_color(),zorder=-1)
+    ax1.fill_between(time_train,np.percentile(y_rcp26,2.5,axis=0),np.percentile(y_rcp26,97.5,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
+    ax1.fill_between(time_train,np.percentile(y_rcp85,2.5,axis=0),np.percentile(y_rcp85,97.5,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
+    #ax1.fill_between(time_train,y_rcp26.percentile(axis=0),y_rcp26.max(axis=0),lw=0,color='grey',alpha=0.1,zorder=0)
+    #ax1.fill_between(time_train,y_rcp85.min(axis=0),y_rcp85.max(axis=0),lw=0,color='grey',alpha=0.1,zorder=0)
+    ax1r.fill_between(time_train,np.percentile(np.gradient(y_rcp26,axis=1),2.5,axis=0),np.percentile(np.gradient(y_rcp26,axis=1),97.5,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
+    ax1r.fill_between(time_train,np.percentile(np.gradient(y_rcp85,axis=1),2.5,axis=0),np.percentile(np.gradient(y_rcp85,axis=1),97.5,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
     ax1.legend(loc=2)
     ax1r.legend(loc=2)
 
@@ -172,14 +180,16 @@ def main():
     sl_q   = Slider(axq, 'q', limits["q"][0], limits["q"][1], valinit=q_val, valstep=0.01)
     sl_phi = Slider(axphi, 'phi', limits["phi"][0], limits["phi"][1], valinit=phi_val, valstep=0.1)
 
-    slr_and_dslr = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
-                   (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
-                   (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
-                   (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
-    if slr_and_dslr:
-        label = 1
-    else:
-        label = 0
+    #hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+    #               (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
+    #               (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
+    #               (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
+    #hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+    #               (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max))
+    #if hist_matching:
+    #    label = 1
+    #else:
+    #    label = 0
     d = {"sia": sia_val, "ssa": ssa_val, "q": q_val, "phi": phi_val}#, "label": label}
     fig2, ax2 = plt.subplots(3,3)
     columns = ["sia","ssa","q","phi"]
@@ -198,6 +208,9 @@ def main():
                 ax2[i,j].set_ylabel(y)
     fig2.tight_layout()
 
+    y1_other  = []
+    y2_other  = []
+
     def update(val):
         sia = sl_sia.val
         ssa = sl_ssa.val
@@ -206,11 +219,13 @@ def main():
         y1 = model_update([sia,ssa,q,phi],rcp26)
         y2 = model_update([sia,ssa,q,phi],rcp85)
         #l5.set_ydata([y1[t_start],y1[t_start],y1[t_end],y1[t_end],y1[t_start]])
-        slr_and_dslr = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
-                       (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
-                       (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
-                       (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
-        if slr_and_dslr:
+        #hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+        #               (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max) and
+        #               (ddslr_obs_min <= np.gradient(y1)[t_end]-np.gradient(y1)[t_start] <= ddslr_obs_max) and
+        #               (ddslr_obs_min <= np.gradient(y2)[t_end]-np.gradient(y2)[t_start] <= ddslr_obs_max))
+        hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
+                       (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max))
+        if hist_matching:
             ax1.plot(time,y1,lw=1,color='C0',alpha=0.25,zorder=1)
             ax1.plot(time,y2,lw=1,color='C1',alpha=0.25,zorder=1)
             ax1r.plot(time,np.gradient(y1),lw=1,color='C0',alpha=0.25,zorder=1)
@@ -221,12 +236,17 @@ def main():
                 for j,y in enumerate(columns[:-1]):
                     if i>=j:
                         ax2[i,j].plot(d[y],d[x],ls='',marker='.',color=colors[d["label"]],alpha=0.5,mew=0)
-        else:
-            ax1.plot(time,y1,lw=0.1,color='grey',alpha=0.01,zorder=0)
-            ax1.plot(time,y2,lw=0.1,color='grey',alpha=0.01,zorder=0)
-            ax1r.plot(time,np.gradient(y1),lw=0.1,color='grey',alpha=0.01,zorder=0)
-            ax1r.plot(time,np.gradient(y2),lw=0.1,color='grey',alpha=0.01,zorder=0)
-            label = 0
+        #else:
+        #    y1_other.append(y1)
+        #    y2_other.append(y2)
+        #    ax1.collections.clear()
+        #    ax1.fill_between(time,np.array(y1_other).min(axis=0),np.array(y1_other).max(axis=0),color='grey',lw=0,alpha=0.1,zorder=0)
+        #    ax1.fill_between(time,np.array(y2_other).min(axis=0),np.array(y2_other).max(axis=0),color='grey',lw=0,alpha=0.1,zorder=0)
+        #    #ax1.plot(time,y1,lw=0.1,color='grey',alpha=0.01,zorder=0)
+        #    #ax1.plot(time,y2,lw=0.1,color='grey',alpha=0.01,zorder=0)
+        #    #ax1r.plot(time,np.gradient(y1),lw=0.1,color='grey',alpha=0.01,zorder=0)
+        #    #ax1r.plot(time,np.gradient(y2),lw=0.1,color='grey',alpha=0.01,zorder=0)
+        #    label = 0
         l1.set_ydata(y1)
         l2.set_ydata(y2)
         l1r.set_ydata(np.gradient(y1))
@@ -290,9 +310,9 @@ def main():
     #l5.set_xdata(None)
     #l5.set_ydata(None)
     fig1.tight_layout()
-    fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    #fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    #fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    #fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
 if __name__ == "__main__":
     main()
