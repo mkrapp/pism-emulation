@@ -4,9 +4,12 @@ import pickle
 import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
+from numpy.random import default_rng
+
+rng = default_rng(42)
 
 def lhssample(n=10,p=2,centered=True):
-    x = np.random.uniform(size=[n,p])
+    x = rng.uniform(size=[n,p])
     for i in range(0,p):
         if centered:
             x[:,i] = (np.argsort(x[:,i])+0.5)/n
@@ -127,6 +130,17 @@ def main():
         lhs_params[:,i] = (limits[s][1]-limits[s][0])*lhs_params[:,i] + limits[s][0]
     for n in tqdm(range(nrandom)):
         update(lhs_params[n,:])
+
+    ### SAVE matched runs to CSV file
+    df_rcp26 = pd.DataFrame({i: y1_matched[i] for i in range(len(y1_matched))},index=time)
+    df_rcp85 = pd.DataFrame({i: y2_matched[i] for i in range(len(y2_matched))},index=time)
+    df_params = pd.DataFrame(d)
+    fnm_out = "data/processed/emulator_runs_rcp26.csv"
+    df_rcp26.to_csv(fnm_out)
+    fnm_out = "data/processed/emulator_runs_rcp85.csv"
+    df_rcp85.to_csv(fnm_out)
+    fnm_out = "data/processed/emulator_runs_parameters.csv"
+    df_params.to_csv(fnm_out)
 
     ### PLOTTING ###
     fig1, ax1 = plt.subplots(1,1)
