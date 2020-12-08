@@ -132,14 +132,22 @@ def main():
         update(lhs_params[n,:])
 
     ### SAVE matched runs to CSV file
-    df_rcp26 = pd.DataFrame({i: y1_matched[i] for i in range(len(y1_matched))},index=time)
-    df_rcp85 = pd.DataFrame({i: y2_matched[i] for i in range(len(y2_matched))},index=time)
+    df_rcp26 = pd.DataFrame({"GMT": rcp26["global_mean_temperature"]} ,index=time)
+    df_rcp85 = pd.DataFrame({"GMT": rcp85["global_mean_temperature"]} ,index=time)
+    for i in range(len(y1_matched)):
+        df_rcp26[i] = y1_matched[i]
+        df_rcp85[i] = y2_matched[i]
+    df_rcp26.index.name = "year"
+    df_rcp85.index.name = "year"
+    df_rcp26["GMT"] = rcp26["global_mean_temperature"]
+    df_rcp85["GMT"] = rcp85["global_mean_temperature"]
     df_params = pd.DataFrame(d)
     fnm_out = "data/processed/emulator_runs_rcp26.csv"
     df_rcp26.to_csv(fnm_out)
     fnm_out = "data/processed/emulator_runs_rcp85.csv"
     df_rcp85.to_csv(fnm_out)
     fnm_out = "data/processed/emulator_runs_parameters.csv"
+    df_params.index.name = "run_id"
     df_params.to_csv(fnm_out)
 
     ### PLOTTING ###
