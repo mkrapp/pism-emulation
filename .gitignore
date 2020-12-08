@@ -1,0 +1,14 @@
+*.nc
+*.pkl
+*.zip
+*.dat
+*.csv
+*.png
+*.aux
+*.log
+*.pyc
+*.pdf
+*.xlsx
+*.gz
+logs/
+notebooks/.ipynb_checkpoints/
