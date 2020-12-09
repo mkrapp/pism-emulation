@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
 import sys
 from tqdm import tqdm
 from numpy.random import default_rng
@@ -40,6 +41,45 @@ def main():
     print(time)
     rcp26 = scenarios['rcp26'].loc[start_year:end_year]
     rcp85 = scenarios['rcp85'].loc[start_year:end_year]
+    # load RCP4.5
+    fnm_gcm = "data/external/gmt/global_tas_Amon_NorESM1-M_rcp45_r1i1p1.dat"
+    df_gcm = pd.read_csv(fnm_gcm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1).loc[:2100]
+    df_filtered = df_gcm*1.0
+    order = 3
+    pts = 51
+    df_filtered.loc[:] = savgol_filter(df_filtered, pts, order)
+    rcp45 = rcp85*0
+    rcp45["global_mean_temperature"] = df_filtered.loc[rcp85.index[0]:2100]
+    rcp45["global_mean_temperature"].loc[2100:] = df_filtered.loc[2100]
+    # load RCP6.0
+    fnm_gcm = "data/external/gmt/global_tas_Amon_NorESM1-M_rcp60_r1i1p1.dat"
+    df_gcm = pd.read_csv(fnm_gcm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1).loc[:2100]
+    df_filtered = df_gcm*1.0
+    order = 3
+    pts = 51
+    df_filtered.loc[:] = savgol_filter(df_filtered, pts, order)
+    rcp60 = rcp85*0
+    rcp60["global_mean_temperature"] = df_filtered.loc[rcp85.index[0]:2100]
+    rcp60["global_mean_temperature"].loc[2100:] = df_filtered.loc[2100]
+    # our scenarios
+    our_scenarios = {}
+    for GWL in range(1,6):
+        this_scen = rcp85*0
+        this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
+        for y in range(2001,2101):
+            this_scen["global_mean_temperature"].loc[y] = rcp85["global_mean_temperature"].loc[2000] + GWL/100.*(y-2000)
+        this_scen["global_mean_temperature"].loc[2100:] = this_scen["global_mean_temperature"].loc[2100]
+        our_scenarios["%dK"%GWL] = this_scen
+
+
+    fig_gmt,ax_gmt = plt.subplots(1,1)
+    scenarios = ["RCP%s"%s for s in ["2.6","8.5","4.5","6.0"]]
+    for i,scen in enumerate([rcp26,rcp85,rcp45,rcp60]):
+        scen = scen.loc[2000:2110] - 273.15
+        ax_gmt.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=scenarios[i])
+    ax_gmt.legend(ncol=2)
+    ax_gmt.set_xlabel("time [in years]")
+    ax_gmt.set_ylabel(u"global mean temperature [in \u2103]")
 
     dt = time[1]-time[0]
 
@@ -103,6 +143,9 @@ def main():
     d = {"sia": [], "ssa": [], "q": [], "phi": []}
     y1_matched = []
     y2_matched = []
+    y3_matched = []
+    y4_matched = []
+    y_our_scenarios_matched = {k: [] for k in our_scenarios.keys()}
     def update(p):
         [sia,ssa,q,phi]  = p
         y1 = model_update([sia,ssa,q,phi],rcp26)
@@ -110,12 +153,19 @@ def main():
         hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
                        (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max))
         if hist_matching:
+            y3 = model_update([sia,ssa,q,phi],rcp45)
+            y4 = model_update([sia,ssa,q,phi],rcp60)
+            for k,scen in our_scenarios.items():
+                y_this_scen = model_update([sia,ssa,q,phi],scen)
+                y_our_scenarios_matched[k].append(y_this_scen)
             d["sia"].append(sia)
             d["ssa"].append(ssa)
             d["q"].append(q)
             d["phi"].append(phi)
             y1_matched.append(y1)
             y2_matched.append(y2)
+            y3_matched.append(y3)
+            y4_matched.append(y4)
 
 
     #for _ in tqdm(range(nrandom)):
@@ -134,21 +184,40 @@ def main():
     ### SAVE matched runs to CSV file
     df_rcp26 = pd.DataFrame({"GMT": rcp26["global_mean_temperature"]} ,index=time)
     df_rcp85 = pd.DataFrame({"GMT": rcp85["global_mean_temperature"]} ,index=time)
+    df_rcp45 = pd.DataFrame({"GMT": rcp45["global_mean_temperature"]} ,index=time)
+    df_rcp60 = pd.DataFrame({"GMT": rcp60["global_mean_temperature"]} ,index=time)
     for i in range(len(y1_matched)):
         df_rcp26[i] = y1_matched[i]
         df_rcp85[i] = y2_matched[i]
+        df_rcp45[i] = y3_matched[i]
+        df_rcp60[i] = y4_matched[i]
     df_rcp26.index.name = "year"
     df_rcp85.index.name = "year"
     df_rcp26["GMT"] = rcp26["global_mean_temperature"]
     df_rcp85["GMT"] = rcp85["global_mean_temperature"]
+    df_rcp45["GMT"] = rcp45["global_mean_temperature"]
+    df_rcp60["GMT"] = rcp60["global_mean_temperature"]
     df_params = pd.DataFrame(d)
     fnm_out = "data/processed/emulator_runs_rcp26.csv"
     df_rcp26.to_csv(fnm_out)
     fnm_out = "data/processed/emulator_runs_rcp85.csv"
     df_rcp85.to_csv(fnm_out)
+    fnm_out = "data/processed/emulator_runs_rcp45.csv"
+    df_rcp45.to_csv(fnm_out)
+    fnm_out = "data/processed/emulator_runs_rcp60.csv"
+    df_rcp60.to_csv(fnm_out)
     fnm_out = "data/processed/emulator_runs_parameters.csv"
     df_params.index.name = "run_id"
     df_params.to_csv(fnm_out)
+    # save our scenarios
+    for k,scen in our_scenarios.items():
+        this_df = pd.DataFrame({"GMT": scen["global_mean_temperature"]} ,index=time)
+        for i in range(len(y1_matched)):
+            this_df[i] = y_our_scenarios_matched[k][i]
+        this_df.index.name = "year"
+        this_df["GMT"] = scen["global_mean_temperature"]
+        fnm_out = "data/processed/emulator_runs_%s.csv"%k
+        this_df.to_csv(fnm_out)
 
     ### PLOTTING ###
     fig1, ax1 = plt.subplots(1,1)
@@ -203,6 +272,7 @@ def main():
     fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig_gmt.savefig("reports/figures/timeseries_scenarios.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     plt.show()
 
 if __name__ == "__main__":
