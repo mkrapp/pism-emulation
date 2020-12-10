@@ -48,6 +48,8 @@ def main():
     order = 3
     pts = 51
     df_filtered.loc[:] = savgol_filter(df_filtered, pts, order)
+    # save the mean as reference for GWL
+    mean = df_filtered.loc[1850:1900].mean()
     rcp45 = rcp85*0
     rcp45["global_mean_temperature"] = df_filtered.loc[rcp85.index[0]:2100]
     rcp45["global_mean_temperature"].loc[2100:] = df_filtered.loc[2100]
@@ -61,25 +63,50 @@ def main():
     rcp60 = rcp85*0
     rcp60["global_mean_temperature"] = df_filtered.loc[rcp85.index[0]:2100]
     rcp60["global_mean_temperature"].loc[2100:] = df_filtered.loc[2100]
-    # our scenarios
-    our_scenarios = {}
+    # custom scenarios (linear warming from 2000 to 2100)
+    other_scenarios = {}
+    temp_2000 = rcp85["global_mean_temperature"].loc[2000]
     for GWL in range(1,6):
         this_scen = rcp85*0
         this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
+        dx = 2100 - 2000
+        dy = temp_2000 - mean + GWL
         for y in range(2001,2101):
-            this_scen["global_mean_temperature"].loc[y] = rcp85["global_mean_temperature"].loc[2000] + GWL/100.*(y-2000)
+            this_scen["global_mean_temperature"].loc[y] = temp_2000 + dy/dx*(y-2000)
         this_scen["global_mean_temperature"].loc[2100:] = this_scen["global_mean_temperature"].loc[2100]
-        our_scenarios["%dK"%GWL] = this_scen
+        other_scenarios["%dK"%GWL] = this_scen
+    # custom scenarios (same warming level but reached at different decades (2040,2060,2080,2100)
+    GWL = 2.
+    for decade in [2020,2040,2060,2080,2100]:
+        this_scen = rcp85*0
+        this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
+        for y in range(2001,decade+1):
+            dx = decade - 2000
+            dy = temp_2000 - mean + GWL
+            this_scen["global_mean_temperature"].loc[y] = temp_2000 + dy/dx*(y-2000)
+        this_scen["global_mean_temperature"].loc[decade:] = this_scen["global_mean_temperature"].loc[decade]
+        other_scenarios["%dK-%d"%(GWL,decade)] = this_scen
 
 
     fig_gmt,ax_gmt = plt.subplots(1,1)
     scenarios = ["RCP%s"%s for s in ["2.6","8.5","4.5","6.0"]]
     for i,scen in enumerate([rcp26,rcp85,rcp45,rcp60]):
-        scen = scen.loc[2000:2110] - 273.15
+        scen = scen.loc[1000:2110] - 273.15
         ax_gmt.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=scenarios[i])
     ax_gmt.legend(ncol=2)
     ax_gmt.set_xlabel("time [in years]")
     ax_gmt.set_ylabel(u"global mean temperature [in \u2103]")
+
+    fig_gmt2, ax_gmt2 = plt.subplots(1,1)
+    for scenario,scen in other_scenarios.items():
+        scen = scen.loc[1000:2110] - 273.15
+        ax_gmt2.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=scenario)
+    ax_gmt2.legend(ncol=2)
+    ax_gmt2.set_xlabel("time [in years]")
+    ax_gmt2.set_ylabel(u"global mean temperature [in \u2103]")
+    #ax_gmt2.grid()
+    #plt.show()
+    #sys.exit()
 
     dt = time[1]-time[0]
 
@@ -145,7 +172,7 @@ def main():
     y2_matched = []
     y3_matched = []
     y4_matched = []
-    y_our_scenarios_matched = {k: [] for k in our_scenarios.keys()}
+    y_other_scenarios_matched = {k: [] for k in other_scenarios.keys()}
     def update(p):
         [sia,ssa,q,phi]  = p
         y1 = model_update([sia,ssa,q,phi],rcp26)
@@ -155,9 +182,9 @@ def main():
         if hist_matching:
             y3 = model_update([sia,ssa,q,phi],rcp45)
             y4 = model_update([sia,ssa,q,phi],rcp60)
-            for k,scen in our_scenarios.items():
+            for k,scen in other_scenarios.items():
                 y_this_scen = model_update([sia,ssa,q,phi],scen)
-                y_our_scenarios_matched[k].append(y_this_scen)
+                y_other_scenarios_matched[k].append(y_this_scen)
             d["sia"].append(sia)
             d["ssa"].append(ssa)
             d["q"].append(q)
@@ -210,10 +237,10 @@ def main():
     df_params.index.name = "run_id"
     df_params.to_csv(fnm_out)
     # save our scenarios
-    for k,scen in our_scenarios.items():
+    for k,scen in other_scenarios.items():
         this_df = pd.DataFrame({"GMT": scen["global_mean_temperature"]} ,index=time)
         for i in range(len(y1_matched)):
-            this_df[i] = y_our_scenarios_matched[k][i]
+            this_df[i] = y_other_scenarios_matched[k][i]
         this_df.index.name = "year"
         this_df["GMT"] = scen["global_mean_temperature"]
         fnm_out = "data/processed/emulator_runs_%s.csv"%k
