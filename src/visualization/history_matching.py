@@ -66,24 +66,25 @@ def main():
     # custom scenarios (linear warming from 2000 to 2100)
     other_scenarios = {}
     temp_2000 = rcp85["global_mean_temperature"].loc[2000]
-    for GWL in range(1,6):
+    temp_start = rcp85["global_mean_temperature"].loc[start_year]
+    for GWL in list(range(1,6))+[1.25,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75]:
         this_scen = rcp85*0
-        this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
-        dx = 2100 - 2000
-        dy = temp_2000 - mean + GWL
-        for y in range(2001,2101):
-            this_scen["global_mean_temperature"].loc[y] = temp_2000 + dy/dx*(y-2000)
+        #this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
+        dx = 2100 - start_year
+        dy = GWL - (temp_start - mean)
+        for y in range(start_year,2101):
+            this_scen["global_mean_temperature"].loc[y] = temp_start + dy/dx*(y-start_year)
         this_scen["global_mean_temperature"].loc[2100:] = this_scen["global_mean_temperature"].loc[2100]
-        other_scenarios["%dK"%GWL] = this_scen
+        other_scenarios["%.2fK"%GWL] = this_scen
     # custom scenarios (same warming level but reached at different decades (2040,2060,2080,2100)
     GWL = 2.
     for decade in [2020,2040,2060,2080,2100]:
         this_scen = rcp85*0
-        this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
-        for y in range(2001,decade+1):
-            dx = decade - 2000
-            dy = temp_2000 - mean + GWL
-            this_scen["global_mean_temperature"].loc[y] = temp_2000 + dy/dx*(y-2000)
+        #this_scen["global_mean_temperature"].loc[:2000] = mean#rcp85["global_mean_temperature"].loc[:2000]
+        for y in range(start_year,decade+1):
+            dx = decade - start_year
+            dy = GWL - (temp_start - mean)
+            this_scen["global_mean_temperature"].loc[y] = temp_start + dy/dx*(y-start_year)
         this_scen["global_mean_temperature"].loc[decade:] = this_scen["global_mean_temperature"].loc[decade]
         other_scenarios["%dK-%d"%(GWL,decade)] = this_scen
 
@@ -300,6 +301,7 @@ def main():
     fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig_gmt.savefig("reports/figures/timeseries_scenarios.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig_gmt2.savefig("reports/figures/timeseries_linear_scenarios.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     plt.show()
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ pts = 51
 df_filtered.loc[:] = savgol_filter(df_filtered, pts, order)
 mean = df_filtered.loc[1850:1900].mean()
 
-fnms = sys.argv[1:]
+fnms = sys.argv[1:-1]
 fig, ax = plt.subplots(1,1)
 
 divider = make_axes_locatable(ax)
@@ -35,27 +35,47 @@ ax2.xaxis.set_ticklabels(ticklabels,rotation=45)
 ax2.xaxis.set_ticks_position('bottom')
 jiggle = np.linspace(-15,15,len(fnms))
 
+scenarios = {
+        "rcp26": "RCP2.6",
+        "rcp45": "RCP4.5",
+        "rcp60": "RCP6.0",
+        "rcp85": "RCP8.5"}
+
+for i in np.arange(1,6,0.25):
+    scenarios["%.2fK"%i] = "%.2fK"%i
+
+for i in np.arange(1,6,0.5):
+    scenarios["%.2fK"%i] = "%.1fK"%i
+
+for i in np.arange(2020,2101,20):
+    scenarios["2K-%d"%i] = "%d"%i
+
+print(scenarios)
+
 for c,fnm in enumerate(fnms):
+    label_id = fnm[:-4].split("_")[-1]
+    label = scenarios[label_id]
     df = pd.read_csv(fnm,index_col=1)
     df_last = df.set_index("year")
     idx = np.argmin(np.diff(df.index))
     last_year  = df_last.index[idx]
-    df = df[np.logical_and(df["year"]<last_year,df["year"]>2015)].drop("year",axis=1)
+    df = df[np.logical_and(df["year"]<=last_year,df["year"]>2000)].drop("year",axis=1)
+    #df = df[df["year"]<last_year].drop("year",axis=1)
     df.index -= mean
     print(df)
 
-    t_range = np.arange(max(df.index),min(df.index),-0.1)[::-1]
-    t_range = np.linspace(min(df.index),max(df.index),10)
+    t_range = np.linspace(np.around(min(df.index),1),np.around(max(df.index),1),10)
 
     new_idx = list(df.index) + list(t_range)
-    df = df.reindex(new_idx)#.sort_index()
-    df = df.interpolate()#method='index')
-    df = df[~df.index.duplicated()]
+    df = df.reindex(new_idx).sort_index()
+    df = df.interpolate(method='index')
+    #df = df[~df.index.duplicated()]
     df = df.reindex(list(t_range))
+    #df = df.sort_index()
     print(df)
 
 
-    ax.plot(df.index,df.median(axis=1),color="C%d"%c,alpha=0.75)
+    ax.plot(df.index,df.median(axis=1),color="C%d"%c,alpha=0.75,label=label)
     qs = np.linspace(0.5,0.95,10)
     qs = [0.5,0.90,0.95]
     for q in qs:
@@ -68,10 +88,13 @@ for c,fnm in enumerate(fnms):
         ci_hi = np.percentile(x,97.5)
         ci_me = np.percentile(x,50)
         ax2.errorbar(y+jiggle[c],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color="C%d"%c)
-        #ax.errorbar(df.index[-1],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color=l.get_color())
 ax.set_xlabel("Global Warming Level (in K)")
+ax.legend(loc=2)
 ax.set_ylabel("Sea-level rise (in m)")
+#ax.grid()
 ax2.set_xlim(ax2.get_xlim()[0]-20,ax2.get_xlim()[1]+20)
 #ax2.set_ylim(ax.get_ylim()[0],ax2.get_ylim()[1])
 #ax.set_ylim(ax.get_ylim()[0],ax2.get_ylim()[1])
 plt.show()
+fnm_out = sys.argv[-1]
+fig.savefig(fnm_out,dpi=300, bbox_inches='tight', pad_inches = 0.01)
