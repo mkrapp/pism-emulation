@@ -67,7 +67,7 @@ def main():
     other_scenarios = {}
     temp_2000 = rcp85["global_mean_temperature"].loc[2000]
     temp_start = rcp85["global_mean_temperature"].loc[start_year]
-    for GWL in list(range(1,6))+[1.25,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75]:
+    for GWL in list(range(1,6)):#+[1.25,1.5,1.75,2.25,2.5,2.75,3.25,3.5,3.75]:
         this_scen = rcp85*0
         #this_scen["global_mean_temperature"].loc[:2000] = rcp85["global_mean_temperature"].loc[:2000]
         dx = 2100 - start_year
@@ -75,7 +75,8 @@ def main():
         for y in range(start_year,2101):
             this_scen["global_mean_temperature"].loc[y] = temp_start + dy/dx*(y-start_year)
         this_scen["global_mean_temperature"].loc[2100:] = this_scen["global_mean_temperature"].loc[2100]
-        other_scenarios["%.2fK"%GWL] = this_scen
+        #other_scenarios["%.2fK"%GWL] = this_scen
+        other_scenarios["%dK"%GWL] = this_scen
     # custom scenarios (same warming level but reached at different decades (2040,2060,2080,2100)
     GWL = 2.
     for decade in [2020,2040,2060,2080,2100]:
@@ -94,20 +95,32 @@ def main():
     for i,scen in enumerate([rcp26,rcp85,rcp45,rcp60]):
         scen = scen.loc[1000:2110] - 273.15
         ax_gmt.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=scenarios[i])
-    ax_gmt.legend(ncol=2)
+    ax_gmt.legend(ncol=2,loc=2)
     ax_gmt.set_xlabel("time [in years]")
     ax_gmt.set_ylabel(u"global mean temperature [in \u2103]")
 
     fig_gmt2, ax_gmt2 = plt.subplots(1,1)
+    fig_gmt3, ax_gmt3 = plt.subplots(1,1)
     for scenario,scen in other_scenarios.items():
         scen = scen.loc[1000:2110] - 273.15
-        ax_gmt2.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=scenario)
-    ax_gmt2.legend(ncol=2)
+        if "-" in scenario:
+            label = "%d"%int(scenario.split("-")[-1])
+            ax_gmt2.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=label)
+        else:
+            label = u"+%.d\u2103"%int(scenario[:-1])
+            ax_gmt3.plot(scen.index,scen["global_mean_temperature"],alpha=0.75,lw=2,label=label)
+    ax_gmt2.legend(ncol=2,loc=2)
     ax_gmt2.set_xlabel("time [in years]")
     ax_gmt2.set_ylabel(u"global mean temperature [in \u2103]")
-    #ax_gmt2.grid()
-    #plt.show()
-    #sys.exit()
+    ax_gmt3.legend(ncol=2,loc=2)
+    ax_gmt3.set_xlabel("time [in years]")
+    ax_gmt3.set_ylabel(u"global mean temperature [in \u2103]")
+
+    # set same range for y-axis
+    ax_ymin = min(ax_gmt.get_ylim()[0],ax_gmt2.get_ylim()[0],ax_gmt3.get_ylim()[0])
+    ax_ymax = max(ax_gmt.get_ylim()[1],ax_gmt2.get_ylim()[1],ax_gmt3.get_ylim()[1])
+    for this_ax in (ax_gmt,ax_gmt2,ax_gmt3):
+        this_ax.set_ylim(ax_ymin,ax_ymax)
 
     dt = time[1]-time[0]
 
@@ -301,7 +314,8 @@ def main():
     fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     fig_gmt.savefig("reports/figures/timeseries_scenarios.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig_gmt2.savefig("reports/figures/timeseries_linear_scenarios.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig_gmt2.savefig("reports/figures/timeseries_linear_scenarios_1.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig_gmt3.savefig("reports/figures/timeseries_linear_scenarios_2.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     plt.show()
 
 if __name__ == "__main__":

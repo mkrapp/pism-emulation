@@ -18,7 +18,7 @@ fig, ax = plt.subplots(1,1)
 
 divider = make_axes_locatable(ax)
 # below height and pad are in inches
-ax2 = divider.append_axes("right", 1, pad=0.1)
+ax2 = divider.append_axes("right", 1.4, pad=0.1)
 #ax2.spines['right'].set_visible(False)
 #ax2.spines['right'].set_visible(True)
 #ax2.spines['top'].set_visible(False)
@@ -33,7 +33,7 @@ ax2.xaxis.set_ticks([y+1 for y in years])
 ticklabels = [y+1 for y in years]
 ax2.xaxis.set_ticklabels(ticklabels,rotation=45)
 ax2.xaxis.set_ticks_position('bottom')
-jiggle = np.linspace(-15,15,len(fnms))
+jiggle = np.linspace(-20,20,len(fnms))
 
 scenarios = {
         "rcp26": "RCP2.6",
@@ -42,13 +42,23 @@ scenarios = {
         "rcp85": "RCP8.5"}
 
 for i in np.arange(1,6,0.25):
-    scenarios["%.2fK"%i] = "%.2fK"%i
+    scenarios["%.2fK"%i] = u"+%.2f\u2103"%i
 
 for i in np.arange(1,6,0.5):
-    scenarios["%.2fK"%i] = "%.1fK"%i
+    scenarios["%.2fK"%i] = u"+%.1f\u2103"%i
+
+for i in range(1,6):
+    scenarios["%.dK"%i] = u"+%.d\u2103"%i
 
 for i in np.arange(2020,2101,20):
     scenarios["2K-%d"%i] = "%d"%i
+
+gwl_min = 0.1
+gwl_max = 5.1
+gwl_slr_min = -0.05
+gwl_slr_max = 0.68
+slr_min = 0.05
+slr_max = 4.1
 
 print(scenarios)
 
@@ -88,13 +98,17 @@ for c,fnm in enumerate(fnms):
         ci_hi = np.percentile(x,97.5)
         ci_me = np.percentile(x,50)
         ax2.errorbar(y+jiggle[c],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color="C%d"%c)
-ax.set_xlabel("Global Warming Level (in K)")
+ax.set_xlabel(u"Global Warming Level (in \u2103)")
 ax.legend(loc=2)
 ax.set_ylabel("Sea-level rise (in m)")
 #ax.grid()
 ax2.set_xlim(ax2.get_xlim()[0]-20,ax2.get_xlim()[1]+20)
 #ax2.set_ylim(ax.get_ylim()[0],ax2.get_ylim()[1])
 #ax.set_ylim(ax.get_ylim()[0],ax2.get_ylim()[1])
+
+ax.set_xlim(gwl_min,gwl_max)
+ax.set_ylim(gwl_slr_min,gwl_slr_max)
+ax2.set_ylim(slr_min,slr_max)
 plt.show()
 fnm_out = sys.argv[-1]
 fig.savefig(fnm_out,dpi=300, bbox_inches='tight', pad_inches = 0.01)
