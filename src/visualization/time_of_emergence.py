@@ -40,12 +40,12 @@ def main():
     #Golledge et al 2015	0.14 to 0.23	0.61 to 0.95	0.9 to 1.36	1.61 to 2.96
     #Bulthuis et al 2019	-0.14 to 0.31	-0.09 to 0.58	-0.04 to 0.96	0.17 to 2.01
     #Bamber et al 2019	-0.11 to 1.56			0.03 to 3.05
-    # DeConto & Pollard 2016
     alpha=1.0
     lw=2
-    ax2.plot([0.7]*2,[-0.63,1.62],lw=lw,alpha=alpha,color="C0")
-    ax2.plot([1.1]*2,[1.78,5.89],lw=lw,alpha=alpha,color="C2")
-    ax2.plot([1.3]*2,[4.88,11.67],lw=lw,alpha=alpha,color="C1")
+    # DeConto & Pollard 2016
+    #ax2.plot([0.7]*2,[-0.63,1.62],lw=lw,alpha=alpha,color="C0")
+    #ax2.plot([1.1]*2,[1.78,5.89],lw=lw,alpha=alpha,color="C2")
+    #ax2.plot([1.3]*2,[4.88,11.67],lw=lw,alpha=alpha,color="C1")
     # Edwards et al 2016 no MICI
     ax2.plot([2.7]*2,[-0.09,0.5],lw=lw,alpha=alpha,color="C0")
     ax2.plot([3.1]*2,[0.5,1.25],lw=lw,alpha=alpha,color="C2")
@@ -63,8 +63,8 @@ def main():
     # Bamber et al 2019
     ax2.plot([8.7]*2,[-0.11,1.56],lw=lw,alpha=alpha,color="C0")
     ax2.plot([9.3]*2,[0.03,3.05],lw=lw,alpha=alpha,color="C1")
-    labels = {1: "DP16", 3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
-    #labels = {3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
+    #labels = {1: "DP16", 3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
+    labels = {3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
     ax2.xaxis.set_ticks([y for y in labels.keys()])
     ticklabels = [v for k,v in labels.items()]
     ax2.xaxis.set_ticklabels(ticklabels,rotation=45)

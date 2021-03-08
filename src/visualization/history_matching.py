@@ -22,7 +22,7 @@ def main():
     # here goes the main part
     fnm_in = sys.argv[1]
     with open(fnm_in, "rb") as f:
-        [_,parameters,time_train,y_name,miny,maxy,ys,_,_] = pickle.load(f)
+        [_,parameters,time_train,y_name,miny,maxy,ys,_,df] = pickle.load(f)
 
     t0_train = time_train[0]
 
@@ -144,26 +144,28 @@ def main():
         idx_diff = time0-start_year
         y_pred = y_pred - y_pred[idx_diff]
 
-        return np.array(y_pred)
+        return np.array(y_pred).flatten()
 
+    uncert_factor = 3.
     # Antarctica only; https://www.nature.com/articles/s41586-020-2591-3/tables/1
     t_start = time==1993
     t_end = time==2018
-    dslr_obs = 0.44e-3
-    # https://www.pnas.org/content/116/4/1095#T2
-    t_start = time==1979
-    t_end = time==2017
-    dslr_obs = 15.9e-3
+    dslr_obs_max  = 0.44*25.*1e-3
+    dslr_obs_min  = 0.21*25.*1e-3
+    ## https://www.pnas.org/content/116/4/1095#T2
+    #t_start = time==1979
+    #t_end = time==2017
+    #dslr_obs = 15.9e-3
+    #dslr_obs_max = (13.9+uncert_factor*2.0)*1e-3
+    #dslr_obs_min = (13.9-uncert_factor*2.0)*1e-3
     # IMBIE team; abstract; https://www.nature.com/articles/s41586-018-0179-y
     t_start = time==1992
     t_end = time==2017
-    dslr_obs_mean = 7.6*1e-3
-    uncert_factor = 3.
     dslr_obs_max  = (7.6+uncert_factor*3.9)*1e-3
     dslr_obs_min  = (7.6-uncert_factor*3.9)*1e-3
-    ddslr_obs_mean = (109)/360.e3 # Gt/a -> m/a
-    ddslr_obs_min  = (109 - uncert_factor*56)/360.e3 # Gt/a -> m/a
-    ddslr_obs_max  = (109 + uncert_factor*56)/360.e3 # Gt/a -> m/a
+    ##ddslr_obs_mean = (109)/360.e3 # Gt/a -> m/a
+    ##ddslr_obs_min  = (109 - uncert_factor*56)/360.e3 # Gt/a -> m/a
+    ##ddslr_obs_max  = (109 + uncert_factor*56)/360.e3 # Gt/a -> m/a
 
 
     limits = {}
@@ -187,26 +189,30 @@ def main():
     y3_matched = []
     y4_matched = []
     y_other_scenarios_matched = {k: [] for k in other_scenarios.keys()}
-    def update(p):
+    def update(p,save_output=True):
         [sia,ssa,q,phi]  = p
         y1 = model_update([sia,ssa,q,phi],rcp26)
         y2 = model_update([sia,ssa,q,phi],rcp85)
         hist_matching = ((dslr_obs_min <= y1[t_end]-y1[t_start] <= dslr_obs_max) and
                        (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max))
         if hist_matching:
-            y3 = model_update([sia,ssa,q,phi],rcp45)
-            y4 = model_update([sia,ssa,q,phi],rcp60)
-            for k,scen in other_scenarios.items():
-                y_this_scen = model_update([sia,ssa,q,phi],scen)
-                y_other_scenarios_matched[k].append(y_this_scen)
-            d["sia"].append(sia)
-            d["ssa"].append(ssa)
-            d["q"].append(q)
-            d["phi"].append(phi)
-            y1_matched.append(y1)
-            y2_matched.append(y2)
-            y3_matched.append(y3)
-            y4_matched.append(y4)
+            if save_output:
+                y3 = model_update([sia,ssa,q,phi],rcp45)
+                y4 = model_update([sia,ssa,q,phi],rcp60)
+                for k,scen in other_scenarios.items():
+                    y_this_scen = model_update([sia,ssa,q,phi],scen)
+                    y_other_scenarios_matched[k].append(y_this_scen)
+                d["sia"].append(sia)
+                d["ssa"].append(ssa)
+                d["q"].append(q)
+                d["phi"].append(phi)
+                y1_matched.append(y1)
+                y2_matched.append(y2)
+                y3_matched.append(y3)
+                y4_matched.append(y4)
+            return True
+        else:
+            return False
 
 
     #for _ in tqdm(range(nrandom)):
@@ -216,6 +222,17 @@ def main():
     #        p.append(x)
     #    #update(p)
     #    print(p)
+    df_matched = []
+    df.index += 1 # expid starts with 1
+    for i,row in df.iterrows():
+        if row[0] == "rcp26":
+            matched = update(row[1:].values,save_output=False)
+            if matched:
+                df_matched.append(row[1:])
+    df_matched = pd.concat(df_matched,axis=1)
+    fnm_out = "data/processed/emulator_runs_pism_matched.csv"
+    df_matched.to_csv(fnm_out)
+
     lhs_params  = lhssample(nrandom,len(d.keys()),centered=False)
     for i,s in enumerate(["sia","ssa","q","phi"]):
         lhs_params[:,i] = (limits[s][1]-limits[s][0])*lhs_params[:,i] + limits[s][0]
