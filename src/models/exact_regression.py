@@ -19,9 +19,9 @@ end_year = 2300
 train_size = 0.05
 np.set_printoptions(precision=3,linewidth=180)
 method = "sklearn"
-learning_rate = 0.1
+learning_rate = 0.01
 num_epochs = 100
-batch_size = 256#1024#512#1024#64#128#512#256#1024
+batch_size = 1024#512#1024#64#128#512#256#1024
 scale_X = False
 scale_y = False
 
@@ -30,6 +30,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
         self.kernel = gpytorch.kernels.RBFKernel(ard_num_dims=7)
+        self.kernel.initialize(lengthscale=[1.0]*7)
         self.covar_module = gpytorch.kernels.ScaleKernel(self.kernel)
 
     def forward(self, x):
@@ -150,6 +151,7 @@ def main():
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood.initialize(noise=1e-4)
 
         model = ExactGPModel(X_train, y_train, likelihood)
         mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)

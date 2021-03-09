@@ -18,8 +18,18 @@ def main():
     df1 = df1.loc[start_year:]
     df2 = df2.loc[start_year:]
 
-    q = 0.95
-    alpha = (1-q)/2.
+    # likely ToE
+    q1 = 0.68
+    alpha = (1-q1)/2.
+    df1_ci_lo = df1.quantile(alpha,axis=1)
+    df2_ci_lo = df2.quantile(alpha,axis=1)
+    alpha = 1 - alpha
+    df1_ci_hi = df1.quantile(alpha,axis=1)
+    df2_ci_hi = df2.quantile(alpha,axis=1)
+    df1_ci68 = df1_ci_hi-df1_ci_lo
+
+    q2 = 0.95
+    alpha = (1-q2)/2.
     df1_ci_lo = df1.quantile(alpha,axis=1)
     df2_ci_lo = df2.quantile(alpha,axis=1)
     alpha = 1 - alpha
@@ -76,21 +86,27 @@ def main():
     l, = ax.plot(df2.index,df2.median(axis=1),lw=2,label='RCP8.5')
     ax.fill_between(df2.index,df2_ci_lo,df2_ci_hi,lw=0,alpha=0.4,color=l.get_color())
     p_values = []
-    different = []
+    different68 = []
+    different95 = []
     for y in df2.index:
         #res = ttest_ind(df1.loc[y],df2.loc[y])
-        diff = np.abs(df2.loc[y].median()-df1.loc[y].median())>df1_ci95.loc[y]
-        different.append(diff)
+        diff95 = np.abs(df2.loc[y].median()-df1.loc[y].median())>df1_ci95.loc[y]
+        different95.append(diff95)
+        diff68 = np.abs(df2.loc[y].median()-df1.loc[y].median())>df1_ci68.loc[y]
+        different68.append(diff68)
         #p_values.append(res.pvalue)
     #ax2 = ax.twinx()
     #ax2.plot(df1.index,p_values,'k-',zorder=0,label="p-values (t-test)")
     #ax2.axhline(0.05,ls='--',lw=1,color="k",alpha=0.25,label='p=0.05')
     #ax3 = ax.twinx()
-    idx = np.argmax(np.diff(np.asarray(different)))
-    year = df1.index[idx]
+    idx68 = np.argmax(np.diff(np.asarray(different68)))
+    year68 = df1.index[idx68]
+    idx95 = np.argmax(np.diff(np.asarray(different95)))
+    year95 = df1.index[idx95]
     #ax2.axvline(year,ls='--',lw=1,color="k",alpha=0.25,label='ToE = year %d'%year)
     #ax2.fill_between(df1.index,different,lw=0,color='k',alpha=0.25,label=r'CI$_{%d}$ (yr=%d)'%(int(q*100),year))
-    ax.axvline(year,lw=2,ls='--',color='k',alpha=0.5,label='ToE (%d%% CI) = %d'%(int(q*100),year),zorder=0)
+    ax.axvline(year68,lw=2,ls='--',color='k',alpha=0.5,label='ToE (%d%% CI) = %d'%(int(q1*100),year68),zorder=0)
+    ax.axvline(year95,lw=2,ls='--',color='k',alpha=0.5,label='ToE (%d%% CI) = %d'%(int(q2*100),year95),zorder=0)
     #ax2.legend(loc=1)
 
     # PISM ranges

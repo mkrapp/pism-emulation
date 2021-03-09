@@ -60,3 +60,13 @@ rule time_of_emergence:
 		path_figures+"toe.png"
 	shell:
 		"python {input.script} {input.rcp26} {input.rcp85} {input.aux_data}"
+
+rule plot_timeseries:
+	input:
+		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		runs     = path_interim+"runs_2300-1yr.pkl",
+		script   = "src/visualization/plot_timeseries.py"
+	#output:
+	#	path_figures+"gp_sea_level_potential_panel.png"
+	shell:
+		"python {input.script} {input.aux_data} {input.runs}"

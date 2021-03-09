@@ -48,6 +48,8 @@ def main():
         # RCP2.6
         this_X = X[i*nt:(i+1)*nt,:]
         y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
+        y_pred = y_pred.flatten()
+        y_pred_std = y_pred_std.flatten()
         #y_pred = y_pred[:,0]
         #y_pred_std = y_pred_std[:,0]
         r2 = r2_score(ys[i],y_pred)
@@ -65,6 +67,8 @@ def main():
         # RCP8.5
         this_X = X[(i+n)*nt:(i+n+1)*nt,:]
         y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
+        y_pred = y_pred.flatten()
+        y_pred_std = y_pred_std.flatten()
         slr85 = y_pred
         #y_pred = y_pred[:,0]
         #y_pred_std = y_pred_std[:,0]
@@ -99,11 +103,15 @@ def main():
     slr26_constrained_emu = np.array(slr26_constrained_emu)
     slr85_constrained_emu = np.array(slr85_constrained_emu)
 
-    pd.set_option("display.precision", 3)
+    pd.set_option("display.precision", 2)
     df_rcp26 = pd.DataFrame({"min": np.min(slr26_constrained,axis=0),"median": np.median(slr26_constrained,axis=0),"max": np.max(slr26_constrained,axis=0)},index=x)
+    df_rcp26 -= df_rcp26.loc[2020]
     df_rcp85 = pd.DataFrame({"min": np.min(slr85_constrained,axis=0),"median": np.median(slr85_constrained,axis=0),"max": np.max(slr85_constrained,axis=0)},index=x)
+    df_rcp85 -= df_rcp85.loc[2020]
     df_rcp26_emu = pd.DataFrame({"min": np.min(slr26_constrained_emu,axis=0),"median": np.median(slr26_constrained_emu,axis=0),"max": np.max(slr26_constrained_emu,axis=0)},index=x)
+    df_rcp26_emu -= df_rcp26_emu.loc[2020]
     df_rcp85_emu = pd.DataFrame({"min": np.min(slr85_constrained_emu,axis=0),"median": np.median(slr85_constrained_emu,axis=0),"max": np.max(slr85_constrained_emu,axis=0)},index=x)
+    df_rcp85_emu -= df_rcp85_emu.loc[2020]
 
     print("RCP2.6 (PISM)")
     print(df_rcp26.loc[[2050,2100,2150,2200,2250,2300]])

@@ -33,7 +33,7 @@ def main():
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
     start_year = 1970
-    end_year   = 2299
+    end_year   = 2300
     time0 = 1992
     print(time_train)
     nrandom = int(sys.argv[3])
@@ -150,15 +150,15 @@ def main():
     # Antarctica only; https://www.nature.com/articles/s41586-020-2591-3/tables/1
     t_start = time==1993
     t_end = time==2018
-    dslr_obs_max  = 0.44*25.*1e-3
+    dslr_obs_max  = 0.44*25.*1e-3 # x25yr because value is goven as rate (mm/yr)
     dslr_obs_min  = 0.21*25.*1e-3
+    # Rignot et al (2019)
     ## https://www.pnas.org/content/116/4/1095#T2
     #t_start = time==1979
     #t_end = time==2017
-    #dslr_obs = 15.9e-3
     #dslr_obs_max = (13.9+uncert_factor*2.0)*1e-3
     #dslr_obs_min = (13.9-uncert_factor*2.0)*1e-3
-    # IMBIE team; abstract; https://www.nature.com/articles/s41586-018-0179-y
+    ## IMBIE team; abstract; https://www.nature.com/articles/s41586-018-0179-y
     t_start = time==1992
     t_end = time==2017
     dslr_obs_max  = (7.6+uncert_factor*3.9)*1e-3
