@@ -6,6 +6,7 @@ sys.path.append("src/models/")
 from sklearn.metrics import r2_score
 #from gaussian_process_emulator import GaussianProcessEmulator, ExponentialDecay
 import pickle
+import itertools
 
 def main():
     # here goes the main part
@@ -31,7 +32,43 @@ def main():
     #print(stdv.shape)
     # PLOTTING
 
-    constrained_expid = [2,4,5,11,13,14,16,20,22,23,25,29,31,32,38,40,41,47,49,50,56,59,60,65,67,68,70,74,76,79]
+    #constrained_expid = [2,4,5,11,13,14,16,20,22,23,25,29,31,32,38,40,41,47,49,50,56,59,60,65,67,68,70,74,76,79]
+
+    sia_values = [1.2,2.4,4.8]
+    ssa_values = [0.425,0.6,0.8]
+    q_values   = [0.25,0.5,0.75]
+    phi_values = [5,10,15]
+    combinations = set(itertools.product(*[sia_values,ssa_values,q_values,phi_values]))
+    for c in combinations:
+        sia,ssa,q,phi = c
+        if phi == 15:
+            combinations = combinations.difference(set([c]))
+        if (q in [0.25]) and (phi == 5):
+            combinations = combinations.difference(set([c]))
+        if (q in [0.75]) and (phi == 10):
+            combinations = combinations.difference(set([c]))
+        if (q == 0.75) and (ssa in [0.425,0.6]):
+            combinations = combinations.difference(set([c]))
+        if (q == 0.75) and (sia in [1.2,2.4]):
+            combinations = combinations.difference(set([c]))
+    print(combinations)
+    print(len(combinations))
+    #valid_expid = {"sia":[],"ssa":[],"q":[],"phi":[]}
+    this_df = df[["sia","ssa","q","phi"]]
+    valid_expid = []
+    for c in combinations:
+        sia,ssa,q,phi = c
+        valid_expid.append((this_df[this_df == c].dropna().index+1).values)
+    #    valid_expid["sia"].append(sia)
+    #    valid_expid["ssa"].append(ssa)
+    #    valid_expid["q"].append(q)
+    #    valid_expid["phi"].append(phi)
+    #df_valid_expid = pd.DataFrame(valid_expid)
+    #print(df)
+    valid_expid = np.sort(np.array(valid_expid),axis=0)
+    print(valid_expid[:,0])
+    constrained_expid = valid_expid.flatten()
+    #sys.exit()
 
     fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(13,8))
     axes = axes.flatten()
@@ -103,24 +140,37 @@ def main():
     slr26_constrained_emu = np.array(slr26_constrained_emu)
     slr85_constrained_emu = np.array(slr85_constrained_emu)
 
-    pd.set_option("display.precision", 2)
+    #pd.set_option("display.precision", 2)
+    YS = np.array(ys[:n])
+    print(YS.shape)
+    df_rcp26_all = pd.DataFrame({"min": np.min(YS,axis=0),"median": np.median(YS,axis=0),"max": np.max(YS,axis=0)},index=x)
+    df_rcp26_all -= df_rcp26_all.loc[2020]
     df_rcp26 = pd.DataFrame({"min": np.min(slr26_constrained,axis=0),"median": np.median(slr26_constrained,axis=0),"max": np.max(slr26_constrained,axis=0)},index=x)
     df_rcp26 -= df_rcp26.loc[2020]
     df_rcp85 = pd.DataFrame({"min": np.min(slr85_constrained,axis=0),"median": np.median(slr85_constrained,axis=0),"max": np.max(slr85_constrained,axis=0)},index=x)
     df_rcp85 -= df_rcp85.loc[2020]
+    YS = np.array(ys[n:])
+    print(YS.shape)
+    df_rcp85_all = pd.DataFrame({"min": np.min(YS,axis=0),"median": np.median(YS,axis=0),"max": np.max(YS,axis=0)},index=x)
+    df_rcp85_all -= df_rcp85_all.loc[2020]
     df_rcp26_emu = pd.DataFrame({"min": np.min(slr26_constrained_emu,axis=0),"median": np.median(slr26_constrained_emu,axis=0),"max": np.max(slr26_constrained_emu,axis=0)},index=x)
     df_rcp26_emu -= df_rcp26_emu.loc[2020]
     df_rcp85_emu = pd.DataFrame({"min": np.min(slr85_constrained_emu,axis=0),"median": np.median(slr85_constrained_emu,axis=0),"max": np.max(slr85_constrained_emu,axis=0)},index=x)
     df_rcp85_emu -= df_rcp85_emu.loc[2020]
 
-    print("RCP2.6 (PISM)")
-    print(df_rcp26.loc[[2050,2100,2150,2200,2250,2300]])
-    print("RCP2.6 (Emulator)")
-    print(df_rcp26_emu.loc[[2050,2100,2150,2200,2250,2300]])
-    print("RCP8.5 (PISM)")
-    print(df_rcp85.loc[[2050,2100,2150,2200,2250,2300]])
-    print("RCP8.5 (Emulator)")
-    print(df_rcp85_emu.loc[[2050,2100,2150,2200,2250,2300]])
+    with pd.option_context('display.float_format', '{:0.2f}'.format):
+        print("ALL PISM RCP2.6")
+        print(df_rcp26_all.loc[[2050,2100,2150,2200,2250,2300]].T)
+        print("PC PISM RCP2.6")
+        print(df_rcp26.loc[[2050,2100,2150,2200,2250,2300]].T)
+        print("PC Emulator RCP2.6")
+        print(df_rcp26_emu.loc[[2050,2100,2150,2200,2250,2300]].T)
+        print("ALL PISM RCP8.5")
+        print(df_rcp85_all.loc[[2050,2100,2150,2200,2250,2300]].T)
+        print("PC PISM RCP8.5")
+        print(df_rcp85.loc[[2050,2100,2150,2200,2250,2300]].T)
+        print("PC Emulator RCP8.5")
+        print(df_rcp85_emu.loc[[2050,2100,2150,2200,2250,2300]].T)
     fig.text(-0.01,0.5, "Prediction error: Emulator - PISM (SLR in m)", fontsize=16, ha="center", va="center", rotation=90)
     fig.tight_layout()
     plt.show()

@@ -73,8 +73,17 @@ def main():
     # Bamber et al 2019
     ax2.plot([8.7]*2,[-0.11,1.56],lw=lw,alpha=alpha,color="C0")
     ax2.plot([9.3]*2,[0.03,3.05],lw=lw,alpha=alpha,color="C1")
+    # This study
+    df_rcp26 = df1.loc[2300]
+    df_rcp85 = df2.loc[2300]
+    df_rcp45 = pd.read_csv("data/processed/emulator_runs_rcp45.csv",index_col=0).loc[2300]
+    df_rcp60 = pd.read_csv("data/processed/emulator_runs_rcp60.csv",index_col=0).loc[2300]
+    ax2.plot([10.7]*2,df_rcp26.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C0")
+    ax2.plot([11.3]*2,df_rcp85.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C1")
+    ax2.plot([10.9]*2,df_rcp45.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C2")
+    ax2.plot([11.1]*2,df_rcp60.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C3")
     #labels = {1: "DP16", 3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
-    labels = {3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
+    labels = {3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19", 11: "LOW21"}
     ax2.xaxis.set_ticks([y for y in labels.keys()])
     ticklabels = [v for k,v in labels.items()]
     ax2.xaxis.set_ticklabels(ticklabels,rotation=45)
@@ -83,8 +92,14 @@ def main():
 
     l, = ax.plot(df1.index,df1.median(axis=1),lw=2,label='RCP2.6')
     ax.fill_between(df1.index,df1_ci_lo,df1_ci_hi,lw=0,alpha=0.4,color=l.get_color())
+    #ax.fill_between(df1.index,df1.min(axis=1),df1.max(axis=1),lw=0,alpha=0.2,color=l.get_color())
+    #ax.plot(df1.index,df1_ci_lo,ls='-',lw=1,alpha=0.75,color=l.get_color())
+    #ax.plot(df1.index,df1_ci_hi,ls='-',lw=1,alpha=0.75,color=l.get_color())
     l, = ax.plot(df2.index,df2.median(axis=1),lw=2,label='RCP8.5')
     ax.fill_between(df2.index,df2_ci_lo,df2_ci_hi,lw=0,alpha=0.4,color=l.get_color())
+    #ax.fill_between(df2.index,df2.min(axis=1),df2.max(axis=1),lw=0,alpha=0.2,color=l.get_color())
+    #ax.plot(df2.index,df2_ci_lo,ls='-',lw=1,alpha=0.75,color=l.get_color())
+    #ax.plot(df2.index,df2_ci_hi,ls='-',lw=1,alpha=0.75,color=l.get_color())
     p_values = []
     different68 = []
     different95 = []
@@ -105,8 +120,10 @@ def main():
     year95 = df1.index[idx95]
     #ax2.axvline(year,ls='--',lw=1,color="k",alpha=0.25,label='ToE = year %d'%year)
     #ax2.fill_between(df1.index,different,lw=0,color='k',alpha=0.25,label=r'CI$_{%d}$ (yr=%d)'%(int(q*100),year))
-    ax.axvline(year68,lw=2,ls='--',color='k',alpha=0.5,label='ToE (%d%% CI) = %d'%(int(q1*100),year68),zorder=0)
-    ax.axvline(year95,lw=2,ls='--',color='k',alpha=0.5,label='ToE (%d%% CI) = %d'%(int(q2*100),year95),zorder=0)
+    ax.axvline(year68,lw=1,ls='--',color="dimgray",alpha=0.75)#,label='ToE (%d%% CI) = %d'%(int(q1*100),year68))
+    ax.axvline(year95,lw=1,ls='--',color="dimgray",alpha=0.75)#,label='ToE (%d%% CI) = %d'%(int(q2*100),year95))
+    ax.text(year68-15,1.7,"%d (likely)"%year68,rotation=90,color="dimgray")
+    ax.text(year95-15,3,"%d (very likely)"%year95,rotation=90,color="dimgray")
     #ax2.legend(loc=1)
 
     # PISM ranges

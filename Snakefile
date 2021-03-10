@@ -66,7 +66,21 @@ rule plot_timeseries:
 		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
 		runs     = path_interim+"runs_2300-1yr.pkl",
 		script   = "src/visualization/plot_timeseries.py"
-	#output:
-	#	path_figures+"gp_sea_level_potential_panel.png"
+	output:
+		path_figures+"gp_sea_level_rise_potential_panel.png"
 	shell:
 		"python {input.script} {input.aux_data} {input.runs}"
+
+#rule plot_warming_levels:
+#	input:
+#		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp85","rcp45","rcp60"]),
+#		decades = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=[2020,2040,2060,2080,2100]),
+#		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[2,3,4,5])
+#	output:
+#		rcps    = path_figures+"gwl_rcps.png",
+#		decades = path_figures+"gwl_different_decades.png",
+#		levels  = path_figures+"gwl_different_warming.png"
+#	shell:
+#		"python src/visualization/warming_levels.py {input.rcps} {output.rcps}" &&
+#		"python src/visualization/warming_levels.py {input.decades} {output.decades}" &&
+#		"python src/visualization/warming_levels.py {input.levels} {output.levels}"
