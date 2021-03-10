@@ -3,27 +3,51 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
-\usepackage{mathptmx}
-\usepackage{graphicx}
-\author{MK}
-\title{Gaussian Process Emulator for uncertainties in sea-level rise projection}
 \begin{document}
 
-\maketitle
+
 
 \section{Gaussian Process Regression}
 
-The emulator is based on Gaussian Process Regression (GPR).
-GPR is a non-parametric approach to fitting a function to a set of training data.
-One major benefit of GPR is that it can estimate not only the mean but also the variance, thus allowing for uncertainty estimates of the predicitons (i.e., a Bayesian approach).
- 
+The statistical emulator is a regression model that is based on Gaussian Processes (GP).
+GP regression is a non-parametric approach to fitting a function to a set of training data $\mathbf{x}$.
 
-\begin{figure}[hbtp]
-\centering
-\includegraphics[scale=1]{figures/gp_constrain_slr.png}
-\includegraphics[scale=1]{figures/gp_constrain_parameter.png}
-\caption{Sea-level rise estimates from the emulator}
-\end{figure}
+\begin{equation}
+f(\mathbf{x}) \sim \mathcal{GP} \left(m(\mathbf{x}), k(\mathbf{x},\mathbf{x'}) \right)
+\end{equation}
 
+In this notation, the function $f$, which is the sea level at a specific point in time, is a random variable that is fully described by the training data $\mathbf{x}$, the mean function, $m(\mathbf{x})$, which we can assume to be zero if we normalize the data ($m(\mathbf{x})=\textbf{0}$), and the covariance function $k(\mathbf{x},\mathbf{x'})$.
+A popular choice of the covariance function $k$ is the radial basis function (RBF) kernel with different length scales for each feature.
+
+\begin{equation}
+%k(x, x') = \exp\left(- \frac{d(x, x')^2}{2l^2} \right)
+k(\mathbf{x}, \mathbf{x}') = \sigma^2 \exp\left(-\frac{1}{2}(\mathbf{x}-\mathbf{x'})^T M (\mathbf{x}-\mathbf{x'})\right)
+\end{equation}
+
+with signal variance $\sigma^2$ and $M=diag(l)^{-2}$, where $l$ is a vector of length-scale parameters that has to be learnt during the training step.
+The training data itself is a list of sets where each set consists of the 7 feature, four PISM parameters, $E_{SSA}$, $E_{SIA}$, $q$, $\phi$, and three forcing parameters that dependent on the respective RCP scenarios (either RCP2.6 or RCP8.5), and which are global mean temperate ($GMT$), the cumulative sum of $GMT$ ($\sum GMT$), and the time since last $GMT$ change ($\hat{t}$).
+The training data has the following form:
+
+\begin{equation}
+\begin{Bmatrix}
+\{E_{SSA}^1,E_{SIA}^1,q^1,\phi^1,GMT^{RCP2.6}(t_1),\sum GMT^{RCP2.6}(t_1),\hat{t}^{RCP2.6}_1\} \\
+\{E_{SSA}^1,E_{SIA}^1,q^1,\phi^1,GMT^{RCP2.6}(t_2),\sum GMT^{RCP2.6}(t_2),\hat{t}^{RCP2.6}_2\} \\
+\ldots \\
+\{E_{SSA}^1,E_{SIA}^1,q^1,\phi^1,GMT^{RCP2.6}(t_K),\sum GMT^{RCP2.6}(t_K),\hat{t}^{RCP2.6}_K\} \\
+\{E_{SSA}^2,E_{SIA}^2,q^2,\phi^2,GMT^{RCP2.6}(t_1),\sum GMT^{RCP2.6}(t_1),\hat{t}^{RCP2.6}_1\} \\
+\ldots \\
+\{E_{SSA}^N,E_{SIA}^N,q^N,\phi^N,GMT^{RCP2.6}(t_K,\sum GMT^{RCP2.6}(t_K,\hat{t}^{RCP2.6}_K\} \\
+\{E_{SSA}^1,E_{SIA}^1,q^1,\phi^1,GMT^{RCP8.5}(t_1),\sum GMT^{RCP8.5}(t_1),\hat{t}^{RCP8.5}_1\} \\
+\ldots \\
+\{E_{SSA}^N,E_{SIA}^1,q^N,\phi^1,GMT^{RCP8.5}(t_K),\sum GMT^{RCP8.5}(t_K),\hat{t}^{RCP8.5}_N\} \\
+\end{Bmatrix}
+\label{eq:training}
+\end{equation}
+
+with $t_k \in \{2018,2019,\ldots,2300\}$ and the experiment index $i \in \{1,\ldots,81\}$.
+Thus, the training data for the two RCP scenarios and the 81 parameter combinations consists of $2\times81\times(2100-2018)=45684$ rows with 7 features each.
+Solving a GP regression analytically requires matrix inversion, which typically scales as $\mathcal{O}(n^3)$, where $n$ is the number of training data.
+Fitting a GP, therefore, gets slow for large $n$.
+In our case, however, we require only 5\%~ of the training data, i.e., 2284 randomly picked sets from Eq.(\ref{eq:training}), to fit the GP.
 
 \end{document}
