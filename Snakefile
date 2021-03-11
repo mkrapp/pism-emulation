@@ -71,16 +71,27 @@ rule plot_timeseries:
 	shell:
 		"python {input.script} {input.aux_data} {input.runs}"
 
-#rule plot_warming_levels:
-#	input:
-#		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp85","rcp45","rcp60"]),
-#		decades = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=[2020,2040,2060,2080,2100]),
-#		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[2,3,4,5])
-#	output:
-#		rcps    = path_figures+"gwl_rcps.png",
-#		decades = path_figures+"gwl_different_decades.png",
-#		levels  = path_figures+"gwl_different_warming.png"
+rule plot_warming_levels:
+	input:
+		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp85","rcp45","rcp60"]),
+		decades = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=[2020,2040,2060,2080,2100]),
+		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[2,3,4,5])
+	output:
+		rcps    = path_figures+"gwl_rcps.png",
+		decades = path_figures+"gwl_different_decades.png",
+		levels  = path_figures+"gwl_different_warming.png"
+	shell:
+		"python src/visualization/warming_levels.py {input.rcps} {output.rcps} &&"
+		"python src/visualization/warming_levels.py {input.decades} {output.decades} &&"
+		"python src/visualization/warming_levels.py {input.levels} {output.levels}"
+
+#rule composite_fig5:
 #	shell:
-#		"python src/visualization/warming_levels.py {input.rcps} {output.rcps}" &&
-#		"python src/visualization/warming_levels.py {input.decades} {output.decades}" &&
-#		"python src/visualization/warming_levels.py {input.levels} {output.levels}"
+#		"composite -size 60 label:'a)' reports/figures/timeseries_scenarios.png reports/figures/fig_5a.png &&"
+#		"composite -size 60 label:'b)' reports/figures/gwl_rcps.png reports/figures/fig_5b.png &&"
+#		"composite -size 60 label:'c)' reports/figures/timeseries_linear_scenarios_1.png reports/figures/fig_5c.png &&"
+#		"composite -size 60 label:'d)' reports/figures/gwl_different_decades.png reports/figures/fig_5d.png &&"
+#		"composite -size 60 label:'e)' reports/figures/timeseries_linear_scenarios_2.png reports/figures/fig_5e.png &&"
+#		"composite -size 60 label:'f)' reports/figures/gwl_different_warming.png reports/figures/fig_5f.png &&"
+#		"montage -mode concatenate -tile 2x3 -geometry +50+20 reports/figures/fig_5{{a,b,c,d,e,f}}.png reports/figures/ToE-fig5.png"
+
