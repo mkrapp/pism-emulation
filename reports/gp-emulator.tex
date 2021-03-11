@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{graphicx}
 \begin{document}
 
 
@@ -10,23 +11,26 @@
 \section{Gaussian Process Regression}
 
 The statistical emulator is a regression model that is based on Gaussian Processes (GP).
-GP regression is a non-parametric approach to fitting a function to a set of training data $\mathbf{x}$.
+GP regression (GPR) is a non-parametric approach to fitting a function to a set of training data $\mathbf{x}$.
 
 \begin{equation}
 f(\mathbf{x}) \sim \mathcal{GP} \left(m(\mathbf{x}), k(\mathbf{x},\mathbf{x'}) \right)
+\label{eq:gp}
 \end{equation}
 
-In this notation, the function $f$, which is the sea level at a specific point in time, is a random variable that is fully described by the training data $\mathbf{x}$, the mean function, $m(\mathbf{x})$, which we can assume to be zero if we normalize the data ($m(\mathbf{x})=\textbf{0}$), and the covariance function $k(\mathbf{x},\mathbf{x'})$.
+In this notation, the function $f$, which is the sea level at a specific point in time, is a random variable that is fully described by the independent variable $\mathbf{x}$, a mean function, $m(\mathbf{x})$, which we can assume to be zero if we normalize the data ($m(\mathbf{x})=\textbf{0}$), and a covariance function $k(\mathbf{x},\mathbf{x'})$.
 A popular choice of the covariance function $k$ is the radial basis function (RBF) kernel with different length scales for each feature.
 
 \begin{equation}
 %k(x, x') = \exp\left(- \frac{d(x, x')^2}{2l^2} \right)
 k(\mathbf{x}, \mathbf{x}') = \sigma^2 \exp\left(-\frac{1}{2}(\mathbf{x}-\mathbf{x'})^T M (\mathbf{x}-\mathbf{x'})\right)
+\label{eq:cov}
 \end{equation}
 
-with signal variance $\sigma^2$ and $M=diag(l)^{-2}$, where $l$ is a vector of length-scale parameters that has to be learnt during the training step.
-The training data itself is a list of sets where each set consists of the 7 feature, four PISM parameters, $E_{SSA}$, $E_{SIA}$, $q$, $\phi$, and three forcing parameters that dependent on the respective RCP scenarios (either RCP2.6 or RCP8.5), and which are global mean temperate ($GMT$), the cumulative sum of $GMT$ ($\sum GMT$), and the time since last $GMT$ change ($\hat{t}$).
-The training data has the following form:
+with signal variance $\sigma^2$ and $M=diag(\mathbf{l})^{-2}$, where $\mathbf{l}$ is a vector of length-scale parameters that has to be learnt from the data during the training step.
+The data itself is a list of sets where each set consists of the 7 feature, four PISM parameters, $E_{SSA}$, $E_{SIA}$, $q$, $\phi$, and three forcings that dependent on the respective RCP scenarios (either RCP2.6 or RCP8.5), and which are global mean temperate ($GMT$), the cumulative sum of $GMT$ ($\sum GMT$), and the time since last $GMT$ change ($\hat{t}$).
+Those forcings are time series that are chopped into individual data points, for example $GMT(t=2018), GMT(t=2019)$, etc.
+The data set, i.e., the $\mathbf{x}$ in Eq.~(\ref{eq:gp}) and (\ref{eq:cov}), has the following structure:
 
 \begin{equation}
 \begin{Bmatrix}
@@ -44,10 +48,30 @@ The training data has the following form:
 \label{eq:training}
 \end{equation}
 
-with $t_k \in \{2018,2019,\ldots,2300\}$ and the experiment index $i \in \{1,\ldots,81\}$.
-Thus, the training data for the two RCP scenarios and the 81 parameter combinations consists of $2\times81\times(2100-2018)=45684$ rows with 7 features each.
-Solving a GP regression analytically requires matrix inversion, which typically scales as $\mathcal{O}(n^3)$, where $n$ is the number of training data.
+with $t_k \in \{2017,2019,\ldots,2300\}$ and the index $i \in \{1,\ldots,81\}$, the IDs of the PISM parameter ensembles.
+Thus, the full data for the two RCP scenarios and the 81 parameter combinations consists of $2\times81\times(2300-2017)=45846$ rows with 7 features each.
+Solving a GP regression analytically requires inverting large matrices, which typically scales as $\mathcal{O}(n^3)$ operations, where $n$ is the number of training data.
 Fitting a GP, therefore, gets slow for large $n$.
-In our case, however, we require only 5\%~ of the training data, i.e., 2284 randomly picked sets from Eq.(\ref{eq:training}), to fit the GP.
+In our case, however, we required only 5\%~ of the data for the training step, i.e., 2292 randomly picked sets from Eq.(\ref{eq:training}), to fit the GP.
+
+The length scales of the RBF kernel after fitting are
+\begin{equation*}
+\mathbf{l} = \left(2.14, 0.263, 0.231, 5.47, 3.01, 3.41\times10^4, 2.17\times10^3\right)^T
+\end{equation*}
+and the signal variance is
+\begin{equation*}
+\sigma^2 = 0.558^2
+\end{equation*}
+
+The resulting covariance matrix, as computed using Eq.~(\ref{eq:cov}) for the training data  is shown in Fig.~\ref{fig:cov}.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figures/covariance_matrix.png} 
+\caption{Covariance matrix, Eq.~(\ref{eq:cov}), for parts of the whole data set before (left) and after (right) fitting the Gaussian Process to the training data (n=2292). The quasi-periodic structure is a result of the features being 7-dimensional.}
+\label{fig:cov}
+\end{figure}
+
+In a second step, we predicted the mean of $f$ in Eq.(\ref{eq:gp}) for the whole data set.
+The prediction error of the GPR model for each of the PISM ensemble members is shown in SI Fig.~XXX).
 
 \end{document}

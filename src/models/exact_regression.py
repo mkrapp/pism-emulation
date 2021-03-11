@@ -113,7 +113,10 @@ def main():
 
     X = np.array(X)
     y = np.array(y).reshape(-1, 1)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=0)
+    idx = np.arange(X.shape[0]).astype(int)
+    X_train, X_test, y_train, y_test, idx_train, idx_test = train_test_split(X, y, idx, train_size=train_size, random_state=0)
+    np.savetxt("data/interim/idx_train.txt",idx_train,fmt="%d")
+    np.save("X.npy",X)
     # make scaler
     scaler_X = StandardScaler(with_mean=scale_X,with_std=scale_X).fit(X_train)
     X_train  = scaler_X.transform(X_train)
