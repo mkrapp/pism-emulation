@@ -9,6 +9,10 @@ from numpy.random import default_rng
 
 rng = default_rng(42)
 
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+
 def lhssample(n=10,p=2,centered=True):
     x = rng.uniform(size=[n,p])
     for i in range(0,p):

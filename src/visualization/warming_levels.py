@@ -13,6 +13,10 @@ pts = 51
 df_filtered.loc[:] = savgol_filter(df_filtered, pts, order)
 mean = df_filtered.loc[1850:1900].mean()
 
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+
 fnms = sys.argv[1:-1]
 fig, ax = plt.subplots(1,1)
 
@@ -35,11 +39,19 @@ ax2.xaxis.set_ticklabels(ticklabels,rotation=45)
 ax2.xaxis.set_ticks_position('bottom')
 jiggle = np.linspace(-20,20,len(fnms))
 
+ax.axhline(0.5,color="lightgray",zorder=-1)
+ax2.axhline(0.5,color="lightgray",zorder=-1)
+
 scenarios = {
         "rcp26": "RCP2.6",
         "rcp45": "RCP4.5",
         "rcp60": "RCP6.0",
         "rcp85": "RCP8.5"}
+colors = {
+        "rcp26": "C0",
+        "rcp45": "C2",
+        "rcp60": "C3",
+        "rcp85": "C1"}
 
 for i in np.arange(1,6,0.25):
     scenarios["%.2fK"%i] = u"+%.2f\u2103"%i
@@ -65,6 +77,9 @@ print(scenarios)
 for c,fnm in enumerate(fnms):
     label_id = fnm[:-4].split("_")[-1]
     label = scenarios[label_id]
+    color = "C%d"%c
+    if label_id in colors.keys():
+        color = colors[label_id]
     df = pd.read_csv(fnm,index_col=1)
     df_last = df.set_index("year")
     idx = np.argmin(np.diff(df.index))
@@ -85,19 +100,19 @@ for c,fnm in enumerate(fnms):
     print(df)
 
 
-    ax.plot(df.index,df.median(axis=1),color="C%d"%c,alpha=0.75,label=label)
+    ax.plot(df.index,df.median(axis=1),color=color,alpha=0.75,label=label)
     qs = np.linspace(0.5,0.95,10)
     qs = [0.5,0.90,0.95]
     for q in qs:
         alpha = (1-q)/2.
         print(alpha,1-alpha)
-        ax.fill_between(df.index,df.quantile(alpha,axis=1),df.quantile(1-alpha,axis=1),color="C%d"%c,lw=0,alpha=0.2)
+        ax.fill_between(df.index,df.quantile(alpha,axis=1),df.quantile(1-alpha,axis=1),color=color,lw=0,alpha=0.2)
     for y in years:
         x = df_last.loc[y]
         ci_lo = np.percentile(x,2.5)
         ci_hi = np.percentile(x,97.5)
         ci_me = np.percentile(x,50)
-        ax2.errorbar(y+jiggle[c],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color="C%d"%c)
+        ax2.errorbar(y+jiggle[c],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color=color)
 ax.set_xlabel(u"Global Warming Level (in \u2103)")
 ax.legend(loc=2)
 ax.set_ylabel("Sea-level rise (in m)")

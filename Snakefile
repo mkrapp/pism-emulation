@@ -73,9 +73,9 @@ rule plot_timeseries:
 
 rule plot_warming_levels:
 	input:
-		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp85","rcp45","rcp60"]),
+		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp45","rcp60","rcp85"]),
 		decades = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=[2020,2040,2060,2080,2100]),
-		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[2,3,4,5])
+		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[1,2,3,4,5])
 	output:
 		rcps    = path_figures+"gwl_rcps.png",
 		decades = path_figures+"gwl_different_decades.png",
