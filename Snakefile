@@ -50,6 +50,16 @@ rule history_matching:
 	shell:
 		"python {input.script} {input.aux_data} {input.runs} {params.n}"
 
+rule ranking:
+	input:
+		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		runs     = path_interim+"runs_2300-1yr.pkl",
+		script   = "src/visualization/ranking.py"
+	output:
+		slr        = path_figures+"gp_constrain_slr_pism_ranking.png",
+	shell:
+		"python {input.script} {input.aux_data} {input.runs}"
+
 rule time_of_emergence:
 	input:
 		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
