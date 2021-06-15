@@ -9,9 +9,9 @@ from numpy.random import default_rng
 
 rng = default_rng(42)
 
-#plt.rcParams['axes.labelsize'] = 14
-#plt.rcParams['xtick.labelsize'] = 12
-#plt.rcParams['ytick.labelsize'] = 12
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
 
 def main():
     # here goes the main part
@@ -20,9 +20,6 @@ def main():
         [_,parameters,time_train,y_name,miny,maxy,ys,_,df] = pickle.load(f)
 
     t0_train = time_train[0]
-
-    #miny = -0.05
-    #maxy = 0.7
 
     fnm_in = sys.argv[2]
     with open(fnm_in, "rb") as f:
@@ -110,7 +107,7 @@ def main():
     idx = np.argsort(Y)
 
     fig,ax = plt.subplots(1,1,figsize=(3,8))
-    n_best = 3
+    n_best = 0 # 0 - strictly just the combinations that match historical constraints
     for m,i in enumerate(idx):
         color = 'lightgray'
         if m < n_best or (X[i]+1 in df_hist_matched.index.values.astype(int)):
@@ -149,11 +146,6 @@ def main():
     #rcp26_matches = [25,29,38,56,70,74,79]
     #rcp26_matches = [2,4,5,11,13,14,20,22,23,29,31,32,38,40,41,47,49,50,56,58,59,65,67,68,74,76,77,79]
 
-    #sia,1.2,2.4,2.4,4.8,4.8,4.8,4.8
-    #ssa,0.8,0.425,0.6,0.425,0.6,0.8,0.8
-    #q,0.75,0.25,0.25,0.25,0.75,0.25,0.75
-    #phi,5.0,10.0,10.0,10.0,5.0,10.0,5.0
-
     color0 = "gray"
     color1 = "C0"
     color2 = "C1"
@@ -190,26 +182,6 @@ def main():
         ax20.plot(time,1e3*(y2-y2[time==2017]),ls='--',c=color2,alpha=0.75,lw=1,zorder=-10,label=label2)
         #ax22.plot(time,y2-y2[time==2018],c=color2,ls='--',alpha=0.5,lw=0.75,zorder=-10)
 
-    color3 = "black"
-    #ax11.axhline(dslr_obs_min/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax11.axhline(dslr_obs_max/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax21.axhline(dslr_obs_min/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax21.axhline(dslr_obs_max/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax10.axhline(dslr_obs_min/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax10.axhline(dslr_obs_max/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax20.axhline(dslr_obs_min/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax20.axhline(dslr_obs_max/25.,ls='--',color=color3,lw=1,zorder=10)
-    #ax21.axhspan(ymin=dslr_obs_min/25,ymax=dslr_obs_max/25,color=color3,alpha=0.25,zorder=10)
-    #for i in range(n):
-    #    ax11.plot(time_train,np.gradient(y_rcp26[i,:]),c='k',alpha=0.75,lw=0.1,zorder=10)
-    #    ax21.plot(time_train,np.gradient(y_rcp85[i,:]),c='k',alpha=0.75,lw=0.1,zorder=10)
-    #    ax12.plot(time_train,np.gradient(y_rcp26[i,:]),c='k',alpha=0.75,lw=0.1,zorder=10)
-    #    ax22.plot(time_train,np.gradient(y_rcp85[i,:]),c='k',alpha=0.75,lw=0.1,zorder=10)
-    #for i in rcp26_matches:
-    #    ax11.plot(time_train,np.gradient(y_rcp26[i,:]),c='r',alpha=0.75,lw=1,zorder=10)
-    #    ax21.plot(time_train,np.gradient(y_rcp85[i,:]),c='r',alpha=0.75,lw=1,zorder=10)
-    #    ax12.plot(time_train,np.gradient(y_rcp26[i,:]),c='r',alpha=0.75,lw=1,zorder=10)
-    #    ax22.plot(time_train,np.gradient(y_rcp85[i,:]),c='r',alpha=0.75,lw=1,zorder=10)
     ax10.set_xlim(1990,2019)
     ax20.set_xlim(1990,2019)
     ax11.set_xlim(2018,2102)
@@ -223,19 +195,19 @@ def main():
     #ax12.set_xlim(2100,2300)
     #ax22.set_xlim(2100,2300)
 
-    ax11.legend(loc=2)
-    ax21.legend(loc=2)
-    ax12.legend(loc=2)
-    ax22.legend(loc=2)
-
-
     time = np.arange(1992,2018)
     y_min = (time-time[time==2017])*dslr_obs_min/25.
     y_max = (time-time[time==2017])*dslr_obs_max/25.
+    color3 = "black"
     ax10.fill_between(time,y_min,y_max,color=color3,alpha=0.25,lw=0,zorder=-10,label='IMBIE (2018)')
     ax20.fill_between(time,y_min,y_max,color=color3,alpha=0.25,lw=0,zorder=-10,label='IMBIE (2018)')
-    ax10.legend(loc=2)
-    ax20.legend(loc=2)
+    fs = 8
+    ax10.legend(loc=2,fontsize=fs)
+    ax20.legend(loc=2,fontsize=fs)
+    ax11.legend(loc=2,fontsize=fs)
+    ax21.legend(loc=2,fontsize=fs)
+    ax12.legend(loc=2,fontsize=fs)
+    ax22.legend(loc=2,fontsize=fs)
     #ax10.plot(time,y_max,'k--',lw=1)
     #ax20.plot(time,y_min,'k--',lw=1)
     #ax20.plot(time,y_max,'k--',lw=1)
