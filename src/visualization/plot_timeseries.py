@@ -33,41 +33,46 @@ def main():
     # PLOTTING
 
     #constrained_expid = [2,4,5,11,13,14,16,20,22,23,25,29,31,32,38,40,41,47,49,50,56,59,60,65,67,68,70,74,76,79]
+    #constrained_expid = 29 79 74 25 70 56 38
+    df_hist_matched = pd.read_csv("data/processed/emulator_runs_pism_matched.csv",index_col=0).T
+    constrained_expid = df_hist_matched.index.values.astype(int)
 
     sia_values = [1.2,2.4,4.8]
     ssa_values = [0.425,0.6,0.8]
     q_values   = [0.25,0.5,0.75]
     phi_values = [5,10,15]
     combinations = set(itertools.product(*[sia_values,ssa_values,q_values,phi_values]))
-    for c in combinations:
-        sia,ssa,q,phi = c
-        if phi == 15:
-            combinations = combinations.difference(set([c]))
-        if (q in [0.25]) and (phi == 5):
-            combinations = combinations.difference(set([c]))
-        if (q in [0.75]) and (phi == 10):
-            combinations = combinations.difference(set([c]))
-        if (q == 0.75) and (ssa in [0.425,0.6]):
-            combinations = combinations.difference(set([c]))
-        if (q == 0.75) and (sia in [1.2,2.4]):
-            combinations = combinations.difference(set([c]))
+    combinations = {tuple(c) for c in df[df["scenario"]=="rcp26"].iloc[constrained_expid-1][parameters].values}
     print(combinations)
-    print(len(combinations))
-    #valid_expid = {"sia":[],"ssa":[],"q":[],"phi":[]}
-    this_df = df[["sia","ssa","q","phi"]]
-    valid_expid = []
-    for c in combinations:
-        sia,ssa,q,phi = c
-        valid_expid.append((this_df[this_df == c].dropna().index+1).values)
-    #    valid_expid["sia"].append(sia)
-    #    valid_expid["ssa"].append(ssa)
-    #    valid_expid["q"].append(q)
-    #    valid_expid["phi"].append(phi)
-    #df_valid_expid = pd.DataFrame(valid_expid)
-    #print(df)
-    valid_expid = np.sort(np.array(valid_expid),axis=0)
-    print(valid_expid[:,0])
-    constrained_expid = valid_expid.flatten()
+    #for c in combinations:
+    #    sia,ssa,q,phi = c
+    #    if phi == 15:
+    #        combinations = combinations.difference(set([c]))
+    #    if (q in [0.25]) and (phi == 5):
+    #        combinations = combinations.difference(set([c]))
+    #    if (q in [0.75]) and (phi == 10):
+    #        combinations = combinations.difference(set([c]))
+    #    if (q == 0.75) and (ssa in [0.425,0.6]):
+    #        combinations = combinations.difference(set([c]))
+    #    if (q == 0.75) and (sia in [1.2,2.4]):
+    #        combinations = combinations.difference(set([c]))
+    #print(combinations)
+    #print(len(combinations))
+    ##valid_expid = {"sia":[],"ssa":[],"q":[],"phi":[]}
+    #this_df = df[["sia","ssa","q","phi"]]
+    #valid_expid = []
+    #for c in combinations:
+    #    sia,ssa,q,phi = c
+    #    valid_expid.append((this_df[this_df == c].dropna().index+1).values)
+    ##    valid_expid["sia"].append(sia)
+    ##    valid_expid["ssa"].append(ssa)
+    ##    valid_expid["q"].append(q)
+    ##    valid_expid["phi"].append(phi)
+    ##df_valid_expid = pd.DataFrame(valid_expid)
+    ##print(df)
+    #valid_expid = np.sort(np.array(valid_expid),axis=0)
+    #print(valid_expid[:,0])
+    #constrained_expid = valid_expid.flatten()
     #sys.exit()
 
     fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(13,8))
@@ -161,15 +166,15 @@ def main():
     with pd.option_context('display.float_format', '{:0.2f}'.format):
         print("ALL PISM RCP2.6")
         print(df_rcp26_all.loc[[2050,2100,2150,2200,2250,2300]].T)
-        print("PC PISM RCP2.6")
+        print("HC PISM RCP2.6")
         print(df_rcp26.loc[[2050,2100,2150,2200,2250,2300]].T)
-        print("PC Emulator RCP2.6")
+        print("HC Emulator RCP2.6")
         print(df_rcp26_emu.loc[[2050,2100,2150,2200,2250,2300]].T)
         print("ALL PISM RCP8.5")
         print(df_rcp85_all.loc[[2050,2100,2150,2200,2250,2300]].T)
-        print("PC PISM RCP8.5")
+        print("HC PISM RCP8.5")
         print(df_rcp85.loc[[2050,2100,2150,2200,2250,2300]].T)
-        print("PC Emulator RCP8.5")
+        print("HC Emulator RCP8.5")
         print(df_rcp85_emu.loc[[2050,2100,2150,2200,2250,2300]].T)
     fig.text(-0.01,0.5, "Prediction error: Emulator - PISM (SLR in m)", fontsize=16, ha="center", va="center", rotation=90)
     fig.tight_layout()
