@@ -23,13 +23,13 @@ def main():
         nruns = len(df)
         time = df.index
 
-    th = 0.01
+    th = 0.001
 
     colors = {"rcp26": "C0", "rcp85": "C1", "rcp45": "C2", "rcp60": "C3"}
     colors.update({"1K": "C0", "2K": "C1", "3K": "C2", "4K": "C3", "5K": "C4"})
 
     allY = []
-    use_decades = range(2000,2301,1)
+    use_decades = range(2000,2301,2)
     Y_decades = {k: {d: [] for d in use_decades} for k in dfs.keys()}
     # PISM ensembles
     for i in tqdm(range(nruns)):
@@ -42,7 +42,7 @@ def main():
     miny = -0.5
     maxy = 4.5
     print(miny,maxy)
-    x = np.linspace(miny,maxy,1001)
+    x = np.linspace(miny,maxy,5001)
     lines = {k: [] for k in dfs.keys()}
     z     = {k: [] for k in dfs.keys()}
     for i,d in enumerate(use_decades[::-1]):
@@ -96,9 +96,11 @@ def main():
 #        line2.set_data(xdata, ydata)
 #        return line1, line2,
 
-    fig3, ax3 = plt.subplots()
-    line1 = ax3.fill_between([], [], lw=0, alpha=0.5, color="C0",label="RCP2.6")
-    line2 = ax3.fill_between([], [], lw=0, alpha=0.5, color="C1", label="RCP8.5")
+    fig3, ax3 = plt.subplots(figsize=(4,3))
+    ax3.fill_between([], [], lw=0, alpha=0.5, color="C0",label="RCP2.6")
+    ax3.fill_between([], [], lw=0, alpha=0.5, color="C1", label="RCP8.5")
+    line1, = ax3.plot([], [], lw=1, alpha=0.75, color="C0")
+    line2, = ax3.plot([], [], lw=1, alpha=0.75, color="C1")
     text1 = ax3.text(0.9,0.3,use_decades[-1],fontsize=16,ha='center',va='center',transform=ax3.transAxes)
 #    ax3.grid()
     ax3.set_xlim(miny, maxy)
@@ -122,8 +124,12 @@ def main():
         ax3.set_ylim(-0.05,3)
 
         ax3.collections.clear()
-        line1 = ax3.fill_between(x[y1>th], y1[y1>th], lw=0, alpha=0.5, color="C0")
-        line2 = ax3.fill_between(x[y2>th], y2[y2>th], lw=0, alpha=0.5, color="C1")
+        ax3.fill_between(x[y1>th], y1[y1>th], lw=0, alpha=0.5, color="C0")
+        ax3.fill_between(x[y2>th], y2[y2>th], lw=0, alpha=0.5, color="C1")
+        idx1 = np.argmax(y1)
+        line1.set_data(2*[x[idx1]], [0,y1[idx1]])
+        idx2 = np.argmax(y2)
+        line2.set_data(2*[x[idx2]], [0,y2[idx2]])
         text1.set_text(use_decades[i])
 
         return line1, line2, text1
@@ -131,7 +137,7 @@ def main():
     ani = animation.FuncAnimation(fig3, run, n_decades, interval=50, repeat_delay=1000)#, init_func=init)
     fig3.tight_layout()
     #ani = animation.ArtistAnimation(fig3, ims, interval=50, blit=True, repeat_delay=1000)
-    ani.save("pdfs.gif")
+    ani.save("reports/figures/pdfs.gif",dpi=150)
 
     ##th = 0.0
     #fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
