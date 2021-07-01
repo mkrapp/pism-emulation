@@ -115,7 +115,7 @@ def main():
             if X[i]+1 in df_hist_matched.index.values.astype(int):
                 color = 'forestgreen'
                 n_best += 1
-        ax.barh("#%2.2d"%(X[i]+1),Y[i],color=color) # expid +1
+        ax.barh("%d"%(X[i]+1),Y[i],color=color) # expid +1
     ax.axvline(np.mean(Y),lw=1,color='k',zorder=10)
     ax.text(np.mean(Y), 20, 'mean', rotation=90, va='center', ha='center', backgroundcolor='w',zorder=11)
     ax.axvline(dslr_unc,lw=1,color='k',zorder=10)

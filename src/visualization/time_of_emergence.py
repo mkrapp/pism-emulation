@@ -4,7 +4,18 @@ import pickle
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import gamma, norm, ttest_ind
+from pyam.plotting import PYAM_COLORS as rcp_colors
 import sys
+
+plt.rcParams.update({
+    "pdf.fonttype" : 42
+    })
+
+rcp_colors = {
+        'AR6-RCP-8.5': '#980002',
+        'AR6-RCP-6.0': '#c37900',
+        'AR6-RCP-4.5': '#709fcc',
+        'AR6-RCP-2.6': '#003466'}
 
 def main():
     # here goes the main part
@@ -13,7 +24,15 @@ def main():
     fnm2 = sys.argv[2]
     df2 = pd.read_csv(fnm2,index_col=0).drop("GMT",axis=1)
 
-    start_year = 2000
+
+    colors = {
+            "rcp26": rcp_colors["AR6-RCP-2.6"],
+            "rcp45": rcp_colors["AR6-RCP-4.5"],
+            "rcp60": rcp_colors["AR6-RCP-6.0"],
+            "rcp85": rcp_colors["AR6-RCP-8.5"]
+            }
+
+    start_year = 1970
 
     df1 = df1.loc[start_year:]
     df2 = df2.loc[start_year:]
@@ -39,7 +58,7 @@ def main():
     df1_ci95 = df1_ci_hi-df1_ci_lo
     df2_ci95 = df2_ci_hi-df2_ci_lo
 
-    fig, ax = plt.subplots(1,1)
+    fig, ax = plt.subplots(1,1,figsize=(7, 3.5))
     divider = make_axes_locatable(ax)
     ax2 = divider.append_axes("right", 1.3, pad=0.1)
     ax2.yaxis.tick_right()
@@ -53,49 +72,49 @@ def main():
     alpha=1.0
     lw=2
     # DeConto & Pollard 2016
-    #ax2.plot([0.7]*2,[-0.63,1.62],lw=lw,alpha=alpha,color="C0")
-    #ax2.plot([1.1]*2,[1.78,5.89],lw=lw,alpha=alpha,color="C2")
-    #ax2.plot([1.3]*2,[4.88,11.67],lw=lw,alpha=alpha,color="C1")
+    #ax2.plot([0.7]*2,[-0.63,1.62],lw=lw,alpha=alpha,color=colors["rcp26"])
+    #ax2.plot([1.1]*2,[1.78,5.89],lw=lw,alpha=alpha,color=colors["rcp45"])
+    #ax2.plot([1.3]*2,[4.88,11.67],lw=lw,alpha=alpha,color=colors["rcp85"])
     # Edwards et al 2016 no MICI
-    ax2.plot([2.7]*2,[-0.09,0.5],lw=lw,alpha=alpha,color="C0")
-    ax2.plot([3.1]*2,[0.5,1.25],lw=lw,alpha=alpha,color="C2")
-    ax2.plot([3.3]*2,[6.86,7.09],lw=lw,alpha=alpha,color="C1")
+    ax2.plot([2.7+8]*2,[-0.09,0.5],lw=lw,alpha=alpha,color=colors["rcp26"])
+    ax2.plot([3.1+8]*2,[0.5,1.25],lw=lw,alpha=alpha,color=colors["rcp45"])
+    ax2.plot([3.3+8]*2,[6.86,7.09],lw=lw,alpha=alpha,color=colors["rcp85"])
     # Golledge et al 2015
-    ax2.plot([4.7]*2,[0.14,0.23],lw=lw,alpha=alpha,color="C0",label="RCP2.6")
-    ax2.plot([4.9]*2,[0.61,0.95],lw=lw,alpha=alpha,color="C2",label="RCP4.5")
-    ax2.plot([5.1]*2,[0.9,1.36],lw=lw,alpha=alpha,color="C3",label="RCP6.0")
-    ax2.plot([5.3]*2,[1.61,2.96],lw=lw,alpha=alpha,color="C1",label="RCP8.5")
+    ax2.plot([4.7]*2,[0.14,0.23],lw=lw,alpha=alpha,color=colors["rcp26"],label="RCP2.6")
+    ax2.plot([4.9]*2,[0.61,0.95],lw=lw,alpha=alpha,color=colors["rcp45"],label="RCP4.5")
+    ax2.plot([5.1]*2,[0.9,1.36],lw=lw,alpha=alpha,color=colors["rcp60"],label="RCP6.0")
+    ax2.plot([5.3]*2,[1.61,2.96],lw=lw,alpha=alpha,color=colors["rcp85"],label="RCP8.5")
     # Bulthuis et al 2019
-    ax2.plot([6.7]*2,[-0.14,0.31],lw=lw,alpha=alpha,color="C0")
-    ax2.plot([6.9]*2,[-0.09,0.58],lw=lw,alpha=alpha,color="C2")
-    ax2.plot([7.1]*2,[-0.04,0.96],lw=lw,alpha=alpha,color="C3")
-    ax2.plot([7.3]*2,[0.17,2.01],lw=lw,alpha=alpha,color="C1")
+    ax2.plot([6.7]*2,[-0.14,0.31],lw=lw,alpha=alpha,color=colors["rcp26"])
+    ax2.plot([6.9]*2,[-0.09,0.58],lw=lw,alpha=alpha,color=colors["rcp45"])
+    ax2.plot([7.1]*2,[-0.04,0.96],lw=lw,alpha=alpha,color=colors["rcp60"])
+    ax2.plot([7.3]*2,[0.17,2.01],lw=lw,alpha=alpha,color=colors["rcp85"])
     # Bamber et al 2019
-    ax2.plot([8.7]*2,[-0.11,1.56],lw=lw,alpha=alpha,color="C0")
-    ax2.plot([9.3]*2,[0.03,3.05],lw=lw,alpha=alpha,color="C1")
+    ax2.plot([8.7]*2,[-0.11,1.56],lw=lw,alpha=alpha,color=colors["rcp26"])
+    ax2.plot([9.3]*2,[0.03,3.05],lw=lw,alpha=alpha,color=colors["rcp85"])
     # This study
     df_rcp26 = df1.loc[2300]
     df_rcp85 = df2.loc[2300]
     df_rcp45 = pd.read_csv("data/processed/emulator_runs_rcp45.csv",index_col=0).loc[2300]
     df_rcp60 = pd.read_csv("data/processed/emulator_runs_rcp60.csv",index_col=0).loc[2300]
-    ax2.plot([10.7]*2,df_rcp26.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C0")
-    ax2.plot([11.3]*2,df_rcp85.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C1")
-    ax2.plot([10.9]*2,df_rcp45.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C2")
-    ax2.plot([11.1]*2,df_rcp60.quantile([0.025,0.975]),lw=lw,alpha=alpha,color="C3")
+    ax2.plot([10.7-8]*2,df_rcp26.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp26"])
+    ax2.plot([11.3-8]*2,df_rcp85.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp85"])
+    ax2.plot([10.9-8]*2,df_rcp45.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp45"])
+    ax2.plot([11.1-8]*2,df_rcp60.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp60"])
     #labels = {1: "DP16", 3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19"}
-    labels = {3: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19", 11: "LOW21"}
+    labels = {3+8: "EDW19", 5: "GOL15", 7: "BUl19", 9: "BAM19", 11-8: "LOW21"}
     ax2.xaxis.set_ticks([y for y in labels.keys()])
     ticklabels = [v for k,v in labels.items()]
     ax2.xaxis.set_ticklabels(ticklabels,rotation=45)
-    ax2.legend(ncol=1,loc=1)
+    ax2.legend(ncol=1,loc=2)
     ax2.set_title("SLR in 2300",fontsize=10,va="top")
 
-    l, = ax.plot(df1.index,df1.median(axis=1),lw=2,label='RCP2.6')
+    l, = ax.plot(df1.index,df1.median(axis=1),color=colors["rcp26"],lw=2,label='RCP2.6')
     ax.fill_between(df1.index,df1_ci_lo,df1_ci_hi,lw=0,alpha=0.4,color=l.get_color())
     #ax.fill_between(df1.index,df1.min(axis=1),df1.max(axis=1),lw=0,alpha=0.2,color=l.get_color())
     #ax.plot(df1.index,df1_ci_lo,ls='-',lw=1,alpha=0.75,color=l.get_color())
     #ax.plot(df1.index,df1_ci_hi,ls='-',lw=1,alpha=0.75,color=l.get_color())
-    l, = ax.plot(df2.index,df2.median(axis=1),lw=2,label='RCP8.5')
+    l, = ax.plot(df2.index,df2.median(axis=1),color=colors["rcp85"],lw=2,label='RCP8.5')
     ax.fill_between(df2.index,df2_ci_lo,df2_ci_hi,lw=0,alpha=0.4,color=l.get_color())
     #ax.fill_between(df2.index,df2.min(axis=1),df2.max(axis=1),lw=0,alpha=0.2,color=l.get_color())
     #ax.plot(df2.index,df2_ci_lo,ls='-',lw=1,alpha=0.75,color=l.get_color())
@@ -135,18 +154,19 @@ def main():
     y_rcp26 = ys[:n,:len(time_train)]
     y_rcp85 = ys[n:,:len(time_train)]
     for pct in [0]:#[2.5,5,10,25]:
-        ax.fill_between(time_train,np.percentile(y_rcp26,pct,axis=0),np.percentile(y_rcp26,100-pct,axis=0),lw=0,color='grey',alpha=0.25,zorder=0,label='PISM (full ensemble)')
+        ax.fill_between(time_train,np.percentile(y_rcp26,pct,axis=0),np.percentile(y_rcp26,100-pct,axis=0),lw=0,color='grey',alpha=0.25,zorder=0,label='Unconstrained')
         ax.fill_between(time_train,np.percentile(y_rcp85,pct,axis=0),np.percentile(y_rcp85,100-pct,axis=0),lw=0,color='grey',alpha=0.25,zorder=0)
 
     ax.legend(loc=2)
-    ax.set_ylabel('sea level rise (in m)')
-    ax.set_xlabel('year')
+    ax.set_ylabel('Sea level rise (in m)')
+    ax.set_xlabel('Year')
     # set axis limits
     ymin = min(ax.get_ylim()[0],ax2.get_ylim()[0])
     ymax = max(ax.get_ylim()[1],ax2.get_ylim()[1])
     ax2.set_ylim(ymin,ymax)
     ax.set_ylim(ymin,ymax)
     fig.savefig("reports/figures/toe.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig.savefig("reports/figures/toe.pdf",dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
     plt.show()
 

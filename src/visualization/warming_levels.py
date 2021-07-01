@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 import sys
+#from pyam.plotting import PYAM_COLORS as rcp_colors
 
 fnm_gcm = "data/external/gmt/global_tas_Amon_NorESM1-M_rcp85_r1i1p1.dat"
 df_gcm = pd.read_csv(fnm_gcm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1).loc[:2100]
@@ -16,6 +17,10 @@ mean = df_filtered.loc[1850:1900].mean()
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
+
+plt.rcParams.update({
+    "pdf.fonttype" : 42
+    })
 
 fnms = sys.argv[1:-1]
 fig, ax = plt.subplots(1,1)
@@ -47,11 +52,17 @@ scenarios = {
         "rcp45": "RCP4.5",
         "rcp60": "RCP6.0",
         "rcp85": "RCP8.5"}
+rcp_colors = {
+        'AR6-RCP-8.5': '#980002',
+        'AR6-RCP-6.0': '#c37900',
+        'AR6-RCP-4.5': '#709fcc',
+        'AR6-RCP-2.6': '#003466'}
 colors = {
-        "rcp26": "C0",
-        "rcp45": "C2",
-        "rcp60": "C3",
-        "rcp85": "C1"}
+        "rcp26": rcp_colors["AR6-RCP-2.6"],
+        "rcp45": rcp_colors["AR6-RCP-4.5"],
+        "rcp60": rcp_colors["AR6-RCP-6.0"],
+        "rcp85": rcp_colors["AR6-RCP-8.5"]
+        }
 
 for i in np.arange(1,6,0.25):
     scenarios["%.2fK"%i] = u"+%.2f\u2103"%i
@@ -115,7 +126,7 @@ for c,fnm in enumerate(fnms):
         ax2.errorbar(y+jiggle[c],ci_me,yerr=[[ci_me-ci_lo],[ci_hi-ci_me]],fmt='.',capsize=2,alpha=0.75,color=color)
 ax.set_xlabel(u"Global Warming Level (in \u2103)")
 ax.legend(loc=2)
-ax.set_ylabel("Sea-level rise (in m)")
+ax.set_ylabel("Sea level rise (in m)")
 #ax.grid()
 ax2.set_xlim(ax2.get_xlim()[0]-20,ax2.get_xlim()[1]+20)
 #ax2.set_ylim(ax.get_ylim()[0],ax2.get_ylim()[1])

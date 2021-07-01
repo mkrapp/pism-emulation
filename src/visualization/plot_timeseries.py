@@ -8,6 +8,17 @@ from sklearn.metrics import r2_score
 import pickle
 import itertools
 
+plt.rcParams.update({
+    "pdf.fonttype" : 42
+    })
+
+rcp_colors = {
+        'AR6-RCP-8.5': '#980002',
+        'AR6-RCP-6.0': '#c37900',
+        'AR6-RCP-4.5': '#709fcc',
+        'AR6-RCP-2.6': '#003466'}
+
+
 def main():
     # here goes the main part
     fnm_in = sys.argv[1]
@@ -75,7 +86,7 @@ def main():
     #constrained_expid = valid_expid.flatten()
     #sys.exit()
 
-    fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(13,8))
+    fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(14,8))
     axes = axes.flatten()
 
     nt = len(time)
@@ -87,6 +98,10 @@ def main():
     slr26_constrained = []
     slr85_constrained = []
     for i in range(n):
+        label1 = None
+        label2 = None
+        label1 = "RCP2.6"
+        label2 = "RCP8.5"
         # RCP2.6
         this_X = X[i*nt:(i+1)*nt,:]
         y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
@@ -98,7 +113,7 @@ def main():
         x = time
         #x = this_X[:,-2]
         slr26 = y_pred
-        l, = axes[i].plot(x,y_pred-ys[i],alpha=0.75)
+        l, = axes[i].plot(x,y_pred-ys[i],color=rcp_colors["AR6-RCP-2.6"],alpha=0.75,lw=2,label=label1)
         #l, = axes[i].plot(x,ys[i])
         #axes[i].plot(x,y_pred,ls='--',c=l.get_color())
         #axes[i].fill_between(x,y_pred-y_pred_std,y_pred+y_pred,lw=0,alpha=0.25,color=l.get_color())
@@ -117,7 +132,8 @@ def main():
         r2 = r2_score(ys[i+n],y_pred)
         x = time
         #x = this_X[:,-2]
-        l, = axes[i].plot(x,y_pred-ys[i+n],alpha=0.75)
+        l, = axes[i].plot(x,y_pred-ys[i+n],color=rcp_colors["AR6-RCP-8.5"],alpha=0.75,lw=2,label=label2)
+        axes[i].axhline(0,ls='-',color='gray',lw=1,zorder=-10)
         #l, = axes[i].plot(x,ys[i+n])
         #axes[i].plot(x,y_pred,ls='--',c=l.get_color())
         #axes[i].fill_between(x,y_pred-y_pred_std,y_pred+y_pred_std,lw=0,alpha=0.25,color=l.get_color())
@@ -133,12 +149,16 @@ def main():
             slr26_constrained_emu.append(slr26)
             slr85_constrained_emu.append(slr85)
 
-            #axes[i].text(0.05,0.8,"*"%r2,fontsize=10,fontweight="bold",color="k",transform=axes[i].transAxes)
-        axes[i].set_title(",".join([str(p) for p in df.loc[i]][1:]),fontsize=6,fontweight=fw,va='top')
+            #axes[i].text(0.05,0.95,"*",fontsize=10,ha='center',va='center',fontweight="bold",color="k",transform=axes[i].transAxes)
+            axes[i].plot(0.1,0.8,ls='',marker="*",markersize=10,color="k",mew=0,transform=axes[i].transAxes)
+        axes[i].set_title(",".join([str(p) for p in df.loc[i]][1:]),fontsize=6,fontweight=fw,va='top',loc='right')
+        axes[i].set_title(i+1,fontsize=6,fontweight=fw,va='top',loc='left')
         axes[i].set_xlim(2000,2315)
         axes[i].set_xticks([2000,2100,2200,2300])
         axes[i].set_xticklabels([2000,2100,2200,2300],rotation=45)
         #axes[i].set_yscale('symlog',linthresh=0.01)
+    handles, labels = axes[-1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='center', bbox_to_anchor=(0.5,-0.01), ncol= 2)
 
     slr26_constrained = np.array(slr26_constrained)
     slr85_constrained = np.array(slr85_constrained)

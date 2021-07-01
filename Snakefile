@@ -44,9 +44,9 @@ rule history_matching:
 		slr        = path_figures+"gp_constrain_slr.png",
 		dslr       = path_figures+"gp_constrain_dslr.png",
 		parameters = path_figures+"gp_constrain_parameter.png",
-		scenarios  = path_figures+"timeseries_scenarios.png",
-		scenario1  = path_figures+"timeseries_linear_scenarios_1.png",
-		scenario2  = path_figures+"timeseries_linear_scenarios_2.png"
+#		scenarios  = path_figures+"timeseries_scenarios.png",
+#		scenario1  = path_figures+"timeseries_linear_scenarios_1.png",
+#		scenario2  = path_figures+"timeseries_linear_scenarios_2.png"
 	shell:
 		"python {input.script} {input.aux_data} {input.runs} {params.n}"
 
@@ -85,15 +85,16 @@ rule plot_warming_levels:
 	input:
 		rcps    = expand(path_processed+"emulator_runs_{rcp}.csv",rcp=["rcp26","rcp45","rcp60","rcp85"]),
 		decades = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=[2020,2040,2060,2080,2100]),
-		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[1,2,3,4,5])
+		levels  = expand(path_processed+"emulator_runs_{level}K.csv",level=[1,2,3,4,5]),
+		script  = "src/visualization/warming_levels.py"
 	output:
 		rcps    = path_figures+"gwl_rcps.png",
 		decades = path_figures+"gwl_different_decades.png",
 		levels  = path_figures+"gwl_different_warming.png"
 	shell:
-		"python src/visualization/warming_levels.py {input.rcps} {output.rcps} &&"
-		"python src/visualization/warming_levels.py {input.decades} {output.decades} &&"
-		"python src/visualization/warming_levels.py {input.levels} {output.levels}"
+		"python {input.script} {input.rcps} {output.rcps} &&"
+		"python {input.script} {input.decades} {output.decades} &&"
+		"python {input.script} {input.levels} {output.levels}"
 
 #rule composite_fig5:
 #	shell:
