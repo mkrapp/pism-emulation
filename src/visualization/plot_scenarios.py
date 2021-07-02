@@ -86,7 +86,7 @@ def main():
         other_scenarios["%dK-%d"%(GWL,decade)] = this_scen
     fig_gmt,ax_gmt = plt.subplots(1,1)
     scenarios = ["RCP%s"%s for s in ["2.6","4.5","6.0","8.5"]]
-    colors    = [rcp_colors["AR6-RCP-%s"%s] for s in ["2.6","8.5","4.5","6.0"]]
+    colors    = [rcp_colors["AR6-RCP-%s"%s] for s in ["2.6","4.5","6.0","8.5"]]
     for i,scen in enumerate([rcp26,rcp45,rcp60,rcp85]):
         scen = scen.loc[1000:2110] - 273.15
         ax_gmt.plot(scen.index,scen["global_mean_temperature"],c=colors[i],alpha=0.75,lw=2,label=scenarios[i])

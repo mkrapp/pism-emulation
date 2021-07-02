@@ -13,6 +13,16 @@ plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 
+plt.rcParams.update({
+    "pdf.fonttype" : 42
+    })
+
+rcp_colors = {
+        'AR6-RCP-8.5': '#980002',
+        'AR6-RCP-6.0': '#c37900',
+        'AR6-RCP-4.5': '#709fcc',
+        'AR6-RCP-2.6': '#003466'}
+
 def main():
     # here goes the main part
     fnm_in = sys.argv[1]
@@ -147,8 +157,8 @@ def main():
     #rcp26_matches = [2,4,5,11,13,14,20,22,23,29,31,32,38,40,41,47,49,50,56,58,59,65,67,68,74,76,77,79]
 
     color0 = "gray"
-    color1 = "C0"
-    color2 = "C1"
+    color1 = rcp_colors["AR6-RCP-2.6"]
+    color2 = rcp_colors["AR6-RCP-8.5"]
     for i in range(n):
         label1 = None
         label2 = None
