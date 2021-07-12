@@ -9,9 +9,9 @@ from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import pickle
-import torch
-from torch.utils.data import TensorDataset, DataLoader
-import gpytorch
+#import torch
+#from torch.utils.data import TensorDataset, DataLoader
+#import gpytorch
 from tqdm import tqdm
 
 start_year = 2018
@@ -25,18 +25,18 @@ batch_size = 1024#512#1024#64#128#512#256#1024
 scale_X = False
 scale_y = False
 
-class ExactGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
-        super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.kernel = gpytorch.kernels.RBFKernel(ard_num_dims=7)
-        self.kernel.initialize(lengthscale=[1.0]*7)
-        self.covar_module = gpytorch.kernels.ScaleKernel(self.kernel)
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+#class ExactGPModel(gpytorch.models.ExactGP):
+#    def __init__(self, train_x, train_y, likelihood):
+#        super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
+#        self.mean_module = gpytorch.means.ConstantMean()
+#        self.kernel = gpytorch.kernels.RBFKernel(ard_num_dims=7)
+#        self.kernel.initialize(lengthscale=[1.0]*7)
+#        self.covar_module = gpytorch.kernels.ScaleKernel(self.kernel)
+#
+#    def forward(self, x):
+#        mean_x = self.mean_module(x)
+#        covar_x = self.covar_module(x)
+#        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 def main():
     # here goes the main part
@@ -90,8 +90,8 @@ def main():
         x3 = (this_forc.groupby((this_forc != this_forc.shift(1)).cumsum()).cumcount()+1)*dt # years since last temperature change
         forcs.append(this_forc.values.flatten())
         this_y = df_timeseries[(n, y_name)].iloc[:].values
-        if y_name == dependent_variables[3]:
-            this_y *= 1e-18
+        #if y_name == dependent_variables[3]:
+        #    this_y *= 1e-18
         this_y -= this_y[0] # set start value to zero
         this_y *= -1.
         #x1 = np.roll(this_y,1)
@@ -134,69 +134,69 @@ def main():
         print("\nLearned kernel: %s" % gp.kernel_)
         print("Log-marginal-likelihood: %.3f"
               % gp.log_marginal_likelihood(gp.kernel_.theta))
-        # Learned kernel: 0.563**2 * RBF(length_scale=[2.07, 0.262, 0.26, 5.18, 3.02, 5.61e+04, 143]) + WhiteKernel(noise_level=1e-05)
-        # Log-marginal-likelihood: 7157.555
-    elif method == "exact":
+        # Learned kernel: 0.558**2 * RBF(length_scale=[2.14, 0.263, 0.231, 5.47, 3.01, 3.41e+04, 2.17e+03]) + WhiteKernel(noise_level=1e-05)
+        # Log-marginal-likelihood: 7191.348
+    #elif method == "exact":
 
-        # GPyTorch
-        X_train = torch.Tensor(X_train)
-        X_test = torch.Tensor(X_test)
-        y_train = torch.Tensor(y_train.flatten())
-        y_test = torch.Tensor(y_test.flatten())
+    #    # GPyTorch
+    #    X_train = torch.Tensor(X_train)
+    #    X_test = torch.Tensor(X_test)
+    #    y_train = torch.Tensor(y_train.flatten())
+    #    y_test = torch.Tensor(y_test.flatten())
 
-        if torch.cuda.is_available():
-            X_train, y_train, X_test, y_test = X_train.cuda(), y_train.cuda(), X_test.cuda(), y_test.cuda()
+    #    if torch.cuda.is_available():
+    #        X_train, y_train, X_test, y_test = X_train.cuda(), y_train.cuda(), X_test.cuda(), y_test.cuda()
 
-        train_dataset = TensorDataset(X_train, y_train)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    #    train_dataset = TensorDataset(X_train, y_train)
+    #    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-        test_dataset = TensorDataset(X_test, y_test)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    #    test_dataset = TensorDataset(X_test, y_test)
+    #    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        likelihood.initialize(noise=1e-4)
+    #    likelihood = gpytorch.likelihoods.GaussianLikelihood()
+    #    likelihood.initialize(noise=1e-4)
 
-        model = ExactGPModel(X_train, y_train, likelihood)
-        mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
+    #    model = ExactGPModel(X_train, y_train, likelihood)
+    #    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
-        if torch.cuda.is_available():
-            model = model.cuda()
-            likelihood = likelihood.cuda()
+    #    if torch.cuda.is_available():
+    #        model = model.cuda()
+    #        likelihood = likelihood.cuda()
 
 
-        model.train()
-        likelihood.train()
+    #    model.train()
+    #    likelihood.train()
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    #    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-        epochs_iter = tqdm(range(num_epochs), desc="Epoch")
-        for i in epochs_iter:
-            model.train()
-            likelihood.train()
-            # Zero gradients from previous iteration
-            optimizer.zero_grad()
-            # Output from model
-            output = model(X_train)
-            # Calc loss and backprop gradients
-            loss = -mll(output, y_train)
-            loss.backward()
-            #print('Iter %d/%d - Loss: %.3f   noise: %.3f' % (
-            #    i + 1, training_iter, loss.item(),
-            #    model.likelihood.noise.item()
-            #))
-            optimizer.step()
-            #model.eval()
-            #likelihood.eval()
-            #means = model(X_test).mean.cpu()
-            #epochs_iter.set_postfix(mae=torch.mean(torch.abs(means - y_test.cpu())).cpu().detach().numpy())
-            epochs_iter.set_postfix(loss=loss.item())
+    #    epochs_iter = tqdm(range(num_epochs), desc="Epoch")
+    #    for i in epochs_iter:
+    #        model.train()
+    #        likelihood.train()
+    #        # Zero gradients from previous iteration
+    #        optimizer.zero_grad()
+    #        # Output from model
+    #        output = model(X_train)
+    #        # Calc loss and backprop gradients
+    #        loss = -mll(output, y_train)
+    #        loss.backward()
+    #        #print('Iter %d/%d - Loss: %.3f   noise: %.3f' % (
+    #        #    i + 1, training_iter, loss.item(),
+    #        #    model.likelihood.noise.item()
+    #        #))
+    #        optimizer.step()
+    #        #model.eval()
+    #        #likelihood.eval()
+    #        #means = model(X_test).mean.cpu()
+    #        #epochs_iter.set_postfix(mae=torch.mean(torch.abs(means - y_test.cpu())).cpu().detach().numpy())
+    #        epochs_iter.set_postfix(loss=loss.item())
 
-        model.eval()
-        likelihood.eval()
+    #    model.eval()
+    #    likelihood.eval()
 
-        # print model parameters
-        for k,v in model.state_dict().items():
-            print(k,v)
+    #    # print model parameters
+    #    for k,v in model.state_dict().items():
+    #        print(k,v)
 
     # PLOTTING
     fig, axes = plt.subplots(9,9,sharex=True,sharey=True,figsize=(13,8))
@@ -263,9 +263,9 @@ def main():
             pickle.dump(gp,f)
         with open(fnm_out, "wb") as f:
             pickle.dump([forcs,parameters,time,y_name,ys.min(),ys.max(),ys,scaler_X.inverse_transform(X),df],f)
-        fig.tight_layout()
-        fnm_out = 'reports/figures/gp_%s_panel.png'%(y_name)
-        fig.savefig(fnm_out,dpi=300, bbox_inches='tight', pad_inches = 0.01)
+        #fig.tight_layout()
+        #fnm_out = 'reports/figures/gp_%s_panel.png'%(y_name)
+        #fig.savefig(fnm_out,dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
 
 if __name__ == "__main__":

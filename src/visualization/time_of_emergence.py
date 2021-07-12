@@ -4,7 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import gamma, norm, ttest_ind
-from pyam.plotting import PYAM_COLORS as rcp_colors
+#from pyam.plotting import PYAM_COLORS as rcp_colors
 import sys
 
 plt.rcParams.update({
