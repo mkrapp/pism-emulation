@@ -26,7 +26,7 @@ The emulator predictions (that match observations) from the parameter sampling a
 
 To run the whole workflow, call
 ```
-snakemake --run_all --cores 1
+snakemake run_all --cores 1
 ```
 
 ## Other data
