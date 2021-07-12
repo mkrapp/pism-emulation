@@ -1,5 +1,6 @@
 
-path_forcing  = "data/external/gmt/"
+path_pism      = "data/external/PISM/"
+path_forcing   = "data/external/gmt/"
 path_interim   = "data/interim/"
 path_processed = "data/processed/"
 path_figures   = "reports/figures/"
@@ -9,6 +10,11 @@ N = 10000
 SCEN   = ["rcp26","rcp45","rcp60","rcp85"]
 DECADE = [2020,2040,2060,2080,2100]
 LEVEL  = [1,2,3,4,5]
+
+SIA = ["1.2","2.4","4.8"]
+SSA = ["0.42","0.6","0.8"]
+Q   = ["0.25","0.5","0.75"]
+PHI = ["5","10","15"]
 
 rule run_all:
 	input:
@@ -28,15 +34,29 @@ rule run_all:
 		path_figures+"slr_emergence.pdf",
 		path_figures+"parameters.png"
 
+rule download_PISM:
+	output:
+		path_pism+"pism_inputs.tar.gz"
+	shell:
+		"wget https://osf.io/exuca/download -O {output} && tar xfvz {output}"
+
+rule unzip_PISM:
+	input:
+		path_pism+"pism_inputs.tar.gz"
+	output:
+		path_pism+"timeser_NorESM1-M-{scen}-sia{sia}_ssa{ssa}_q{q}_phi{phi}-2016-2300.nc"
+	shell:
+		"gunzip -c compress/timeser_NorESM1-M-{wildcards.scen}-sia{wildcards.sia}_ssa{wildcards.ssa}_q{wildcards.q}_phi{wildcards.phi}-2016-2300.nc.gz > {output}"
+
 rule download_rcps:
 	output:
 		path_forcing+"global_tas_Amon_NorESM1-M_{scen}_r1i1p1.dat"
 	shell:
 		"wget http://climexp.knmi.nl/CMIP5/Tglobal/global_tas_Amon_NorESM1-M_{wildcards.scen}_r1i1p1.dat -O {output}"
-	
 
 rule prepare_inputs:
 	input:
+		pism   = expand(path_pism+"timeser_NorESM1-M-{scen}-sia{sia}_ssa{ssa}_q{q}_phi{phi}-2016-2300.nc",scen=["rcp26","rcp85"],sia=SIA,ssa=SSA,q=Q,phi=PHI),
 		gmt    = expand(path_forcing+"global_tas_Amon_NorESM1-M_{scen}_r1i1p1.dat",scen=SCEN),
 		script = "src/data/read_pism_timeseries.py"
 	output:
