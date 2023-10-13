@@ -176,7 +176,7 @@ def main():
         ax_ani.set_xlim(miny, maxy)
         ax_ani.set_ylim(-0.05,3)
 
-        ax_ani.collections.clear()
+        [a.remove()  for a in ax_ani.collections]
         for j,scenario in enumerate(dfs.keys()):
             y = z[scenario][n_decades-i-1]
             ax_ani.fill_between(x[y>th], y[y>th], lw=0, alpha=0.5, color=colors[scenario])

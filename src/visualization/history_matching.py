@@ -157,7 +157,7 @@ def main():
     df_matched = []
     df.index += 1 # expid starts with 1
     for i,row in df.iterrows():
-        if row[0] == "rcp26":
+        if row.iloc[0] == "rcp26":
             matched = update(row[1:].values,save_output=False)
             if matched:
                 df_matched.append(row[1:])

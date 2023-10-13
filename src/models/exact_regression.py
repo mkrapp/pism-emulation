@@ -219,7 +219,7 @@ def main():
                 y_pred = pred.mean.cpu().numpy()
         else:
             y_pred, y_pred_std = gp.predict(X_,return_std=True)
-        y_pred = scaler_y.inverse_transform(y_pred).flatten()
+        y_pred = scaler_y.inverse_transform(y_pred.reshape(-1, 1)).flatten()
         r2 = r2_score(ys[i],y_pred)
         axes[i].plot(time,y_pred,ls='--',c=l.get_color())
         #axes[i].fill_between(time,y_pred-1.95*y_pred_std,y_pred+1.95*y_pred,lw=0,alpha=0.25,color=l.get_color())
@@ -241,7 +241,7 @@ def main():
                 y_pred = pred.mean.cpu().numpy()
         else:
             y_pred, y_pred_std = gp.predict(X_,return_std=True)
-        y_pred = scaler_y.inverse_transform(y_pred).flatten()
+        y_pred = scaler_y.inverse_transform(y_pred.reshape(-1, 1)).flatten()
         r2 = r2_score(ys[i+n],y_pred)
         axes[i].plot(time,y_pred,ls='--',c=l.get_color())
         #axes[i].fill_between(time,y_pred-1.95*y_pred_std,y_pred+1.95*y_pred_std,lw=0,alpha=0.25,color=l.get_color())
