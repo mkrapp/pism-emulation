@@ -1,6 +1,6 @@
 contextvars
 dash
 gunicorn
-numpy
+numpy<2.0.0
 pandas<2.0.0
 plotly
