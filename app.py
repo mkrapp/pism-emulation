@@ -19,7 +19,7 @@ with open(fnm_in, "rb") as f:
 
 t0_train = time_train[0]
 
-fnm_in = "./data/interim/runs_v1-1yr.pkl"
+fnm_in = "./data/interim/runs_2300-1yr.pkl"
 with open(fnm_in, "rb") as f:
     _,_,scenarios = pickle.load(f)
 start_year = 1970
