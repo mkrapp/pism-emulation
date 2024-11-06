@@ -1,4 +1,6 @@
 contextvars
 dash
 gunicorn
+numpy
+pandas
 plotly
