@@ -9,7 +9,18 @@ We need at least Python in version 3 and as a virtual environment we recommend u
 ```
 conda create --name pism-emu
 conda activate pism-emu
-conda install numpy scipy pandas matplotlib tqdm scikit-learn netCDF4 snakemake
+```
+
+Now, we can install the required packages:
+
+```
+conda install numpy scipy pandas matplotlib tqdm scikit-learn netCDF4
+```
+
+The installation of `snakemake`, our workflow management tool, is via another conda channel:
+
+```
+conda install -c bioconda snakemake==4
 ```
 
 ## Workflow
@@ -32,3 +43,8 @@ snakemake run_all --cores 1
 ## Other data
 
 Global mean temperature forcing from *NorESM1-M* (as surrogate for the spatially explicit PISM forcing) can found [here](http://climexp.knmi.nl/CMIP5/Tglobal/) and will be downloaded automatically.
+
+
+## Citation
+
+Lowry, D.P., Krapp, M., Golledge, N.R. et al. The influence of emissions scenarios on future Antarctic ice loss is unlikely to emerge this century. Commun Earth Environ 2, 221 (2021). https://doi.org/10.1038/s43247-021-00289-2
