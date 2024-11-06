@@ -55,7 +55,7 @@ def model_update(c,scen):
     idx_diff = time0-start_year
     y_pred = y_pred - y_pred[idx_diff]
 
-    return np.array(y_pred)
+    return np.array(y_pred).flatten()
 
 # Antarctica only; https://www.nature.com/articles/s41586-020-2591-3/tables/1
 t_start = time==1993
