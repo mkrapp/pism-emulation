@@ -212,6 +212,9 @@ def update(change):
 
 app = dash.Dash()
 
+server = app.server
+app.title = 'Interactive PISM Emulation Explorer'
+
 app.layout = html.Div(children=[
        html.Div([ dcc.Graph(id="fig", figure=fig)]),
        html.Div([
@@ -273,5 +276,5 @@ def update_fig(sia,ssa,q,phi,figure):
     figure['data'][3]['y'] = np.gradient(y2)
     return figure
 
-
-app.run_server(debug=True, use_reloader=False, host="192.168.1.155")  # Turn off reloader if inside Jupyte
+if __name__ == '__main__':
+    app.run_server(debug=False)
