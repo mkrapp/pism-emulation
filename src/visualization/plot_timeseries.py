@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,17 +22,25 @@ rcp_colors = {
 
 def main():
     # here goes the main part
-    fnm_in = sys.argv[1]
-    with open(fnm_in, "rb") as f:
+    parser = argparse.ArgumentParser(
+            prog='ranking',
+            description='Ranking samples.')
+    parser.add_argument('--model_output', type=str, required=True, help="Output from regression model (to pickle from)")
+    parser.add_argument('--input', type=str, required=True, help="Input file with scenarios (to pickle from)")
+    parser.add_argument('--model', type=str, required=True, help="Model type", choices=["mlp","gp","rf"])
+    #parser.add_argument('--nrandom', type=int, required=True, help="Number of random samples")
+    args = parser.parse_args()
+    fnm_model_output = args.model_output
+    with open(fnm_model_output, "rb") as f:
         [forcs,parameters,time,y_name,miny,maxy,ys,X,df] = pickle.load(f)
 
-    fnm_in = sys.argv[2]
+    fnm_in = args.input
     with open(fnm_in, "rb") as f:
         [df,df_timeseries,scenarios] = pickle.load(f)
 
-
-    with open("./models/gp_exact.pkl", "rb") as f:
-        gpe = pickle.load(f)
+    fnm_model = f"./models/{args.model}.pkl"
+    with open(fnm_model, "rb") as f:
+        model = pickle.load(f)
 
     #gpe = GaussianProcessEmulator()
     #gpe.load("./models/")
@@ -45,7 +54,7 @@ def main():
 
     #constrained_expid = [2,4,5,11,13,14,16,20,22,23,25,29,31,32,38,40,41,47,49,50,56,59,60,65,67,68,70,74,76,79]
     #constrained_expid = 29 79 74 25 70 56 38
-    df_hist_matched = pd.read_csv("data/processed/emulator_runs_pism_matched.csv",index_col=0).T
+    df_hist_matched = pd.read_csv(f"data/processed/{args.model}_emulator_runs_pism_matched.csv",index_col=0).T
     constrained_expid = df_hist_matched.index.values.astype(int)
 
     sia_values = [1.2,2.4,4.8]
@@ -104,9 +113,10 @@ def main():
         label2 = "RCP8.5"
         # RCP2.6
         this_X = X[i*nt:(i+1)*nt,:]
-        y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
+        #y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
+        y_pred = model.predict(this_X)
         y_pred = y_pred.flatten()
-        y_pred_std = y_pred_std.flatten()
+        #y_pred_std = y_pred_std.flatten()
         #y_pred = y_pred[:,0]
         #y_pred_std = y_pred_std[:,0]
         r2 = r2_score(ys[i],y_pred)
@@ -123,9 +133,10 @@ def main():
         #axes[i].text(0.05,0.6,"%.2f"%r2,fontsize=6,fontweight=fw,color=l.get_color(),transform=axes[i].transAxes)
         # RCP8.5
         this_X = X[(i+n)*nt:(i+n+1)*nt,:]
-        y_pred, y_pred_std = gpe.predict(this_X, return_std=True)
+        #y_pred, y_pred_std = model.predict(this_X, return_std=True)
+        y_pred = model.predict(this_X)
         y_pred = y_pred.flatten()
-        y_pred_std = y_pred_std.flatten()
+        #y_pred_std = y_pred_std.flatten()
         slr85 = y_pred
         #y_pred = y_pred[:,0]
         #y_pred_std = y_pred_std[:,0]
@@ -199,7 +210,7 @@ def main():
     fig.text(-0.01,0.5, "Prediction error: Emulator - PISM (SLR in m)", fontsize=16, ha="center", va="center", rotation=90)
     fig.tight_layout()
     plt.show()
-    fnm_out = 'reports/figures/gp_%s_panel.png'%(y_name)
+    fnm_out = f'reports/figures/{args.model}_{y_name}_panel.png'
     print(fnm_out)
     fig.savefig(fnm_out,dpi=300, bbox_inches='tight', pad_inches = 0.01)
 

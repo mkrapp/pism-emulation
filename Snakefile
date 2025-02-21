@@ -2,10 +2,11 @@
 path_pism      = "data/external/PISM/"
 path_forcing   = "data/external/gmt/"
 path_interim   = "data/interim/"
-path_processed = "data/processed/"
-path_figures   = "reports/figures/"
+model = "mlp" # ["mlp", "gp", "rf"]
+path_processed = f"data/processed/{model}_"
+path_figures   = f"reports/figures/{model}_"
 
-N = 10000
+N = 10_000
 
 SCEN   = ["rcp26","rcp45","rcp60","rcp85"]
 DECADE = [2020,2040,2060,2080,2100]
@@ -16,14 +17,16 @@ SSA = ["0.42","0.6","0.8"]
 Q   = ["0.25","0.5","0.75"]
 PHI = ["5","10","15"]
 
+y     = "sea_level_rise_potential"
+
 rule run_all:
 	input:
 		path_figures+"timeseries_linear_scenarios_1.png",
 		path_figures+"timeseries_linear_scenarios_2.png",
 		path_figures+"timeseries_scenarios.png",
-		path_figures+"gp_constrain_slr_pism_ranking.png",
+		path_figures+"constrain_slr_pism_ranking.png",
 		path_figures+"toe.png",
-		path_figures+"gp_sea_level_rise_potential_panel.png",
+		path_figures+y+"_panel.png",
 		path_figures+"gwl_rcps.png",
 		path_figures+"gwl_different_decades.png",
 		path_figures+"gwl_different_warming.png",
@@ -57,33 +60,33 @@ rule download_rcps:
 rule prepare_inputs:
 	input:
 		pism   = expand(path_pism+"timeser_NorESM1-M-{scen}-sia{sia}_ssa{ssa}_q{q}_phi{phi}-2016-2300.nc",scen=["rcp26","rcp85"],sia=SIA,ssa=SSA,q=Q,phi=PHI),
-		gmt    = expand(path_forcing+"global_tas_Amon_NorESM1-M_{scen}_r1i1p1.dat",scen=SCEN),
-		script = "src/data/read_pism_timeseries.py"
+		gmt    = expand(path_forcing+"global_tas_Amon_NorESM1-M_{scen}_r1i1p1.dat",scen=[SCEN[i] for i in [0,3]]),
+		script = "src/data/read_inputs.py"
 	output:
 		path_interim+"runs_2300-1yr.pkl"
 	params:
-		inc = 1
+		dt = 1
 	shell:
-		"python {input.script} {params.inc} {output}"
+		"python {input.script} --dt {params.dt} --output {output} --rcps {input.gmt}"
 
 rule regression:
 	input:
 		runs   = path_interim+"runs_2300-1yr.pkl",
-		script = "src/models/exact_regression.py"
+		script = "src/models/run_regression.py"
 	output:
-		model     = "models/gp_exact.pkl",
+		model_out = "models/"+model+".pkl",
 		idx_train = path_interim+"idx_train.txt",
-		aux_data  = path_processed+"gp_sea_level_rise_potential.pkl"
+		aux_data  = path_processed+y+".pkl"
 	shell:
-		"python {input.script} {input.runs} y"
+		"python {input.script} --input {input.runs} --model {model}"
 
 rule history_matching:
 	input:
-		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
-		runs     = path_interim+"runs_2300-1yr.pkl",
-		model    = "models/gp_exact.pkl",
-		other    = path_interim+"other_scenarios.pkl",
-		script   = "src/visualization/history_matching.py"
+		aux_data  = path_processed+y+".pkl",
+		runs      = path_interim+"runs_2300-1yr.pkl",
+		model_out = "models/"+model+".pkl",
+		other     = path_interim+"other_scenarios.pkl",
+		script    = "src/visualization/history_matching.py"
 	params:
 		n = N
 	output:
@@ -92,38 +95,39 @@ rule history_matching:
 		rcps       = expand(path_processed+"emulator_runs_{scen}.csv",scen=SCEN),
 		decades    = expand(path_processed+"emulator_runs_2K-{decade}.csv",decade=DECADE),
 		levels     = expand(path_processed+"emulator_runs_{level}K.csv",level=LEVEL),
-		slr        = path_figures+"gp_constrain_slr.png",
-		dslr       = path_figures+"gp_constrain_dslr.png",
-		parameters = path_figures+"gp_constrain_parameter.png",
+		slr        = path_figures+"constrain_slr.png",
+		dslr       = path_figures+"constrain_dslr.png",
+		parameters = path_figures+"constrain_parameter.png",
 	shell:
-		"python {input.script} {input.aux_data} {input.runs} {params.n}"
+		"python {input.script} --model_output {input.aux_data} --input {input.runs} --nrandom {params.n} --model {model}"
 
 rule ranking:
 	input:
-		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		aux_data = path_processed+y+".pkl",
 		runs     = path_interim+"runs_2300-1yr.pkl",
 		matched  = path_processed+"emulator_runs_pism_matched.csv",
 		script   = "src/visualization/ranking.py"
 	output:
-		slr      = path_figures+"gp_constrain_slr_pism_ranking.png",
+		slr      = path_figures+"constrain_slr_pism_ranking.png",
 	shell:
-		"python {input.script} {input.aux_data} {input.runs}"
+		"python {input.script} --model_output {input.aux_data} --input {input.runs} --model {model}"
 
 rule time_of_emergence:
 	input:
-		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		aux_data = path_processed+y+".pkl",
 		rcp26    = path_processed+"emulator_runs_rcp26.csv",
 		rcp85    = path_processed+"emulator_runs_rcp85.csv",
 		script   = "src/visualization/time_of_emergence.py"
 	output:
 		path_figures+"toe.png"
 	shell:
-		"python {input.script} {input.rcp26} {input.rcp85} {input.aux_data}"
+		"python {input.script} --rcp26 {input.rcp26} --rcp85 {input.rcp85} --model_output {input.aux_data} --model {model}"
 
 rule plot_scenarios:
 	input:
-		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		aux_data = path_processed+y+".pkl",
 		runs     = path_interim+"runs_2300-1yr.pkl",
+		gmt      = expand(path_forcing+"global_tas_Amon_NorESM1-M_{scen}_r1i1p1.dat",scen=[SCEN[i] for i in [1,2]]),
 		script   = "src/visualization/plot_scenarios.py"
 	output:
 		scen1 = path_figures+"timeseries_linear_scenarios_1.png",
@@ -131,18 +135,18 @@ rule plot_scenarios:
 		rcps  = path_figures+"timeseries_scenarios.png",
 		other = path_interim+"other_scenarios.pkl"
 	shell:
-		"python {input.script} {input.aux_data} {input.runs}"
+		"python {input.script} --model_output {input.aux_data} --input {input.runs} --rcps {input.gmt} --output {output.other} --model {model}"
 
 rule plot_timeseries:
 	input:
-		aux_data = path_processed+"gp_sea_level_rise_potential.pkl",
+		aux_data = path_processed+y+".pkl",
 		runs     = path_interim+"runs_2300-1yr.pkl",
 		matched  = path_processed+"emulator_runs_pism_matched.csv",
 		script   = "src/visualization/plot_timeseries.py"
 	output:
-		path_figures+"gp_sea_level_rise_potential_panel.png"
+		path_figures+y+"_panel.png"
 	shell:
-		"python {input.script} {input.aux_data} {input.runs}"
+		"python {input.script} --model_output {input.aux_data} --input {input.runs} --model {model}"
 
 rule plot_filtered_timeseries:
 	input:

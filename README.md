@@ -1,31 +1,27 @@
 # PISM emulator
 
-We use *Gaussian Processes* to emulate Antarctic sea-level contributions from PISM under various climate forcings (*RCP2.6* and *RCP8.5*) and model parameter combinations.
+We use a non-linear regression model to emulate Antarctic sea-level contributions from PISM under various climate forcings (*RCP2.6* and *RCP8.5*) and model parameter combinations.
 
 ## Getting started
 
-We need at least Python in version 3 and as a virtual environment we recommend using `conda`.
+Before we start, we create a virtual environment to install all our required libraries using `conda`:
 
 ```
-conda create --name pism-emu
+conda env create --file environment.yml
 conda activate pism-emu
 ```
 
-Now, we can install the required packages:
+If you want to use some of the code in a Jupyter notebook, you need to register this virtual environment as a kernel:
 
 ```
-conda install numpy scipy pandas matplotlib tqdm scikit-learn netCDF4
+python -m ipykernel install --name pism-emu
 ```
 
-The installation of `snakemake`, our workflow management tool, is via another conda channel:
-
-```
-conda install -c bioconda snakemake==4
-```
+Then simply type `jupter notebook` and you're good to go.
 
 ## Workflow
 
-We use `Snakemake` for our workflow management. `Snakemake` takes care of dependencies between different parts of the workflow, as well as of downloading and pre-processing the data, running the emulator, visualization of results, etc. Basically it follows these steps:
+Our workflow management tool is [`Snakemake`](https://snakemake.readthedocs.io/en/stable/). It takes care of dependencies between different parts of the workflow, such as downloading and pre-processing of input data, running the emulator, and visualizing results. Basically it follows these steps:
 
 1. **Pre-processing:** Convert time series data and store them for later use (we use Python's `pickle` a lot)
 2. **Training:** Run the *Gaussian Process Regression* using four PISM parameters ($q$, $E_{ssa}$, $E_{sia}$, $\varphi$), global mean temperature (GMT) (as direct forcing term), cumulative GMT (as committed forcing term), and time since last change in GMT (as a kind of relaxation measure)

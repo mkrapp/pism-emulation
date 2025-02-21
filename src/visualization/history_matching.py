@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 import pickle
@@ -30,12 +31,21 @@ def lhssample(n=10,p=2,centered=True):
 
 def main():
     # here goes the main part
-    fnm_in = sys.argv[1]
-    with open(fnm_in, "rb") as f:
+    parser = argparse.ArgumentParser(
+            prog='history_matching',
+            description='Run history matching.')
+    parser.add_argument('--model_output', type=str, required=True, help="Output from regression model (to pickle from)")
+    parser.add_argument('--input', type=str, required=True, help="Input file with scenarios (to pickle from)")
+    parser.add_argument('--model', type=str, required=True, help="Model type", choices=["mlp","gp","rf"])
+    parser.add_argument('--nrandom', type=int, required=True, help="Number of random samples")
+    args = parser.parse_args()
+    model_type = args.model
+    fnm_model_output = args.model_output
+    with open(fnm_model_output, "rb") as f:
         [_,parameters,time_train,y_name,miny,maxy,ys,_,df] = pickle.load(f)
 
     t0_train = time_train[0]
-    fnm_in = sys.argv[2]
+    fnm_in = args.input
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
     start_year = 1970
@@ -46,13 +56,15 @@ def main():
     print(time)
     rcp26 = scenarios['rcp26'].loc[start_year:end_year]
     rcp85 = scenarios['rcp85'].loc[start_year:end_year]
+    rcps = {"rcp26": rcp26, "rcp85": rcp85}
 
     #miny = -0.05
     #maxy = 0.7
 
-    nrandom = int(sys.argv[3])
+    nrandom = args.nrandom
     with open("./data/interim/other_scenarios.pkl", "rb") as f:
-        [other_scenarios,rcp45,rcp60] = pickle.load(f)
+        [other_scenarios,other_rcps] = pickle.load(f)
+    all_rcps = {**rcps, **other_rcps}
 
     dt = time[1]-time[0]
 
@@ -60,8 +72,10 @@ def main():
     n_params = len(parameters)
 
     print(y_name)
-    with open("./models/gp_exact.pkl", "rb") as f:
-        gpe = pickle.load(f)
+    #with open("./models/gp_exact.pkl", "rb") as f:
+    fnm_model = f"./models/{model_type}.pkl"
+    with open(fnm_model, "rb") as f:
+        model = pickle.load(f)
     def model_update(c,scen):
         X = np.zeros((nt,n_params+3))
         this_forc = scen["global_mean_temperature"]
@@ -72,7 +86,7 @@ def main():
         for i,t in enumerate(time):
             X[i,:n_params] = c
             X[i,n_params:] = [x1.loc[t],x2.loc[t],x3.loc[t]]
-        y_pred = gpe.predict(X)
+        y_pred = model.predict(X)
         idx_diff = time0-start_year
         y_pred = y_pred - y_pred[idx_diff]
 
@@ -116,10 +130,7 @@ def main():
 
 
     d = {"sia": [], "ssa": [], "q": [], "phi": []}
-    y1_matched = []
-    y2_matched = []
-    y3_matched = []
-    y4_matched = []
+    y_matched = {k: [] for k in all_rcps.keys()}
     y_other_scenarios_matched = {k: [] for k in other_scenarios.keys()}
     def update(p,save_output=True):
         [sia,ssa,q,phi]  = p
@@ -129,8 +140,6 @@ def main():
                        (dslr_obs_min <= y2[t_end]-y2[t_start] <= dslr_obs_max))
         if hist_matching:
             if save_output:
-                y3 = model_update([sia,ssa,q,phi],rcp45)
-                y4 = model_update([sia,ssa,q,phi],rcp60)
                 for k,scen in other_scenarios.items():
                     y_this_scen = model_update([sia,ssa,q,phi],scen)
                     y_other_scenarios_matched[k].append(y_this_scen)
@@ -138,10 +147,11 @@ def main():
                 d["ssa"].append(ssa)
                 d["q"].append(q)
                 d["phi"].append(phi)
-                y1_matched.append(y1)
-                y2_matched.append(y2)
-                y3_matched.append(y3)
-                y4_matched.append(y4)
+                y_matched["rcp26"].append(y1)
+                y_matched["rcp85"].append(y2)
+                for k,scen in other_rcps.items():
+                    y_this_scen = model_update([sia,ssa,q,phi],scen)
+                    y_matched[k].append(y_this_scen)
             return True
         else:
             return False
@@ -162,7 +172,7 @@ def main():
             if matched:
                 df_matched.append(row[1:])
     df_matched = pd.concat(df_matched,axis=1)
-    fnm_out = "data/processed/emulator_runs_pism_matched.csv"
+    fnm_out = f"data/processed/{model_type}_emulator_runs_pism_matched.csv"
     df_matched.index.name = "expid"
     df_matched.to_csv(fnm_out)
 
@@ -173,41 +183,51 @@ def main():
         update(lhs_params[n,:])
 
     ### SAVE matched runs to CSV file
-    df_rcp26 = pd.DataFrame({"GMT": rcp26["global_mean_temperature"]} ,index=time)
-    df_rcp85 = pd.DataFrame({"GMT": rcp85["global_mean_temperature"]} ,index=time)
-    df_rcp45 = pd.DataFrame({"GMT": rcp45["global_mean_temperature"]} ,index=time)
-    df_rcp60 = pd.DataFrame({"GMT": rcp60["global_mean_temperature"]} ,index=time)
-    for i in range(len(y1_matched)):
-        df_rcp26[i] = y1_matched[i]
-        df_rcp85[i] = y2_matched[i]
-        df_rcp45[i] = y3_matched[i]
-        df_rcp60[i] = y4_matched[i]
-    df_rcp26.index.name = "year"
-    df_rcp85.index.name = "year"
-    df_rcp26["GMT"] = rcp26["global_mean_temperature"]
-    df_rcp85["GMT"] = rcp85["global_mean_temperature"]
-    df_rcp45["GMT"] = rcp45["global_mean_temperature"]
-    df_rcp60["GMT"] = rcp60["global_mean_temperature"]
+    #df_rcp26 = pd.DataFrame({"GMT": rcp26["global_mean_temperature"]} ,index=time)
+    #df_rcp85 = pd.DataFrame({"GMT": rcp85["global_mean_temperature"]} ,index=time)
+    #df_rcp45 = pd.DataFrame({"GMT": rcp45["global_mean_temperature"]} ,index=time)
+    #df_rcp60 = pd.DataFrame({"GMT": rcp60["global_mean_temperature"]} ,index=time)
+    #for i in range(len(y1_matched)):
+    #    df_rcp26[i] = y1_matched[i]
+    #    df_rcp85[i] = y2_matched[i]
+    #    df_rcp45[i] = y3_matched[i]
+    #    df_rcp60[i] = y4_matched[i]
+    #df_rcp26.index.name = "year"
+    #df_rcp85.index.name = "year"
+    #df_rcp26["GMT"] = rcp26["global_mean_temperature"]
+    #df_rcp85["GMT"] = rcp85["global_mean_temperature"]
+    #df_rcp45["GMT"] = rcp45["global_mean_temperature"]
+    #df_rcp60["GMT"] = rcp60["global_mean_temperature"]
+    #df_params = pd.DataFrame(d)
+    #fnm_out = "data/processed/emulator_runs_rcp26.csv"
+    #df_rcp26.to_csv(fnm_out)
+    #fnm_out = "data/processed/emulator_runs_rcp85.csv"
+    #df_rcp85.to_csv(fnm_out)
+    #fnm_out = "data/processed/emulator_runs_rcp45.csv"
+    #df_rcp45.to_csv(fnm_out)
+    #fnm_out = "data/processed/emulator_runs_rcp60.csv"
+    #df_rcp60.to_csv(fnm_out)
+    for k,scen in all_rcps.items():
+        this_df = pd.DataFrame({"GMT": scen["global_mean_temperature"]} ,index=time)
+        for i in range(len(y_matched[k])):
+            this_df[i] = y_matched[k][i]
+        this_df.index.name = "year"
+        this_df["GMT"] = scen["global_mean_temperature"]
+        fnm_out = f"data/processed/{model_type}_emulator_runs_{k}.csv"
+        this_df.to_csv(fnm_out)
+
     df_params = pd.DataFrame(d)
-    fnm_out = "data/processed/emulator_runs_rcp26.csv"
-    df_rcp26.to_csv(fnm_out)
-    fnm_out = "data/processed/emulator_runs_rcp85.csv"
-    df_rcp85.to_csv(fnm_out)
-    fnm_out = "data/processed/emulator_runs_rcp45.csv"
-    df_rcp45.to_csv(fnm_out)
-    fnm_out = "data/processed/emulator_runs_rcp60.csv"
-    df_rcp60.to_csv(fnm_out)
-    fnm_out = "data/processed/emulator_runs_parameters.csv"
     df_params.index.name = "run_id"
+    fnm_out = f"data/processed/{model_type}_emulator_runs_parameters.csv"
     df_params.to_csv(fnm_out)
     # save our scenarios
     for k,scen in other_scenarios.items():
         this_df = pd.DataFrame({"GMT": scen["global_mean_temperature"]} ,index=time)
-        for i in range(len(y1_matched)):
+        for i in range(len(y_other_scenarios_matched[k])):
             this_df[i] = y_other_scenarios_matched[k][i]
         this_df.index.name = "year"
         this_df["GMT"] = scen["global_mean_temperature"]
-        fnm_out = "data/processed/emulator_runs_%s.csv"%k
+        fnm_out = f"data/processed/{model_type}_emulator_runs_{k}.csv"
         this_df.to_csv(fnm_out)
 
     ### PLOTTING ###
@@ -238,7 +258,7 @@ def main():
         ax1r.fill_between(time_train,np.percentile(np.gradient(y_rcp26,axis=1),pct,axis=0),np.percentile(np.gradient(y_rcp26,axis=1),100-pct,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
         ax1r.fill_between(time_train,np.percentile(np.gradient(y_rcp85,axis=1),pct,axis=0),np.percentile(np.gradient(y_rcp85,axis=1),100-pct,axis=0),lw=0,color='grey',alpha=0.2,zorder=0)
 
-    n_matched = len(y1_matched)
+    n_matched = len(y_matched["rcp26"])
     C0 = rcp_colors["AR6-RCP-2.6"]
     C1 = rcp_colors["AR6-RCP-8.5"]
     ax1.plot(time,[np.nan]*len(time),c=C0,lw=1,alpha=0.75,label='RCP2.6')
@@ -246,10 +266,10 @@ def main():
     ax1r.plot(time,[np.nan]*len(time),c=C0,lw=1,alpha=0.75,label='RCP2.6')
     ax1r.plot(time,[np.nan]*len(time),c=C1,lw=1,alpha=0.75,label='RCP8.5')
     for n in range(n_matched):
-        ax1.plot(time,y1_matched[n],lw=1,color=C0,alpha=0.25,zorder=1)
-        ax1.plot(time,y2_matched[n],lw=1,color=C1,alpha=0.25,zorder=1)
-        ax1r.plot(time,np.gradient(y1_matched[n]),lw=1,color=C0,alpha=0.25,zorder=1)
-        ax1r.plot(time,np.gradient(y2_matched[n]),lw=1,color=C1,alpha=0.25,zorder=1)
+        ax1.plot(time,y_matched["rcp26"][n],lw=1,color=C0,alpha=0.25,zorder=1)
+        ax1.plot(time,y_matched["rcp85"][n],lw=1,color=C1,alpha=0.25,zorder=1)
+        ax1r.plot(time,np.gradient(y_matched["rcp26"][n]),lw=1,color=C0,alpha=0.25,zorder=1)
+        ax1r.plot(time,np.gradient(y_matched["rcp85"][n]),lw=1,color=C1,alpha=0.25,zorder=1)
     #ax1.plot(time,np.percentile(y1_matched,50,axis=0),ls='--',c=C0,alpha=0.75,lw=2,zorder=10,label='emulator (median)')
     #ax1.plot(time,np.percentile(y2_matched,50,axis=0),ls='--',c=C1,alpha=0.75,lw=2,zorder=10,label='emulator (median)')
     ax1.legend(loc=2)
@@ -262,9 +282,9 @@ def main():
 
     fig2.tight_layout()
     fig1.tight_layout()
-    fig1.savefig("reports/figures/gp_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig1r.savefig("reports/figures/gp_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig2.savefig("reports/figures/gp_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig1.savefig(f"reports/figures/{model_type}_constrain_slr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig1r.savefig(f"reports/figures/{model_type}_constrain_dslr.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig2.savefig(f"reports/figures/{model_type}_constrain_parameter.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     plt.show()
 
 if __name__ == "__main__":

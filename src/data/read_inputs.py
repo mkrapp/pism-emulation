@@ -1,7 +1,7 @@
+import argparse
 import numpy as np
 import pandas as pd
 import netCDF4 as nc4
-import sys
 import itertools
 import os.path
 import pickle
@@ -13,19 +13,43 @@ def load(fnm):
     df = pd.read_csv(fnm,delim_whitespace=True,comment='#',header=None,index_col=0).mean(axis=1)
     return df
 
+def find_differences(filenames):
+    """Finds the varying parts of a list of filenames."""
+    if not filenames:
+        return []
+    # Split filenames into components
+    split_names = [list(f) for f in filenames]
+    # Transpose to compare columns
+    transposed = list(zip(*split_names))
+    # Identify the varying positions
+    varying_indices = [i for i, chars in enumerate(transposed) if len(set(chars)) > 1]
+    # Extract the varying parts
+    variations = ["".join([name[i] for i in varying_indices]) for name in filenames]
+    return variations
+
 def main():
     # here goes the main part
 
-    dt = int(sys.argv[1])
+    parser = argparse.ArgumentParser(
+            prog='read_inputs',
+            description='Read global mean temperature time series and PISM outputs.')
+    parser.add_argument('--dt', type=int, required=True, help="Time increment (in years)")
+    parser.add_argument('--rcps', type=str, required=True, nargs='+', help="GMT time series of RCPs")
+    parser.add_argument('--output', type=str, required=True, help="Output file (to pickle)")
+    args = parser.parse_args()
+    scenarios = ["rcp" + s for s in find_differences(args.rcps)]
+    print(scenarios)
+    print(args.rcps)
+
+    dt = args.dt
     time = np.arange(1850,2101).astype(int)
     # forcings
     forcings = []
-    scenarios = ["rcp26","rcp85"]
-    for scenario in scenarios:
+    #scenarios = ["rcp26","rcp85"]
+    for scenario,fnm in zip(scenarios,args.rcps):
         print(scenario)
         var = "global_mean_temperature"
         print("\t"+var)
-        fnm = "data/external/gmt/global_tas_Amon_NorESM1-M_%s_r1i1p1.dat"%(scenario)
         this_df = load(fnm)
         this_df.loc[:] = savgol_filter(this_df, 51, 3)
         forcings.append(this_df.loc[time].values)
@@ -88,10 +112,10 @@ def main():
     timeseries = np.array(timeseries).T
     # have to subtract 100, otherwise:
     # pandas._libs.tslibs.np_datetime.OutOfBoundsDatetime: Out of bounds nanosecond timestamp: 2300-12-31 00:00:00
-    index = pd.date_range('1/1/%d'%(time[0]-100), periods=len(time), freq='Y')
+    index = pd.date_range('1/1/%d'%(time[0]-100), periods=len(time), freq='YE')
     df_timeseries = pd.DataFrame(timeseries,index=index,columns=multi_index)
     df_timeseries.index.name="year"
-    index_forcing = pd.date_range('1/1/%d'%(df_forcings.index[0]-100), periods=len(df_forcings), freq='Y')
+    index_forcing = pd.date_range('1/1/%d'%(df_forcings.index[0]-100), periods=len(df_forcings), freq='YE')
     df_forcings.index = index_forcing
     #print(df_timeseries.index)
     #print(df_forcings.index)
@@ -99,15 +123,15 @@ def main():
     for t in df_timeseries.index[df_timeseries.index>last]:
         df_forcings.loc[t] = df_forcings.loc[last]
     offset = (df_timeseries.index[0].year-df_forcings.index[0].year)%dt
-    df_timeseries = df_timeseries.resample("%dY"%dt).mean()
-    df_forcings = df_forcings.iloc[offset:].resample("%dY"%dt).mean()
+    df_timeseries = df_timeseries.resample("%dYE"%dt).mean()
+    df_forcings = df_forcings.iloc[offset:].resample("%dYE"%dt).mean()
     time  = df_timeseries.index.year + 100
     df_forcings.index = df_forcings.index.year + 100
     df_timeseries.index = time
     #print(df_timeseries.index)
     #print(df_forcings.index)
     print(len(time))
-    fnm = sys.argv[2]
+    fnm = args.output
     print("Datasets 'df' and 'df_timeseries' and 'df_forcings' pickled under '%s'"%fnm)
     with open(fnm, "wb") as f:
         pickle.dump([df,df_timeseries,df_forcings], f)

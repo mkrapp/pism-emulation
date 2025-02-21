@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 import pickle
@@ -19,11 +20,18 @@ rcp_colors = {
 
 def main():
     # here goes the main part
-    fnm1 = sys.argv[1]
+    parser = argparse.ArgumentParser(
+            prog='time_of_emergence',
+            description='Plot scenarios.')
+    parser.add_argument('--model_output', type=str, required=True, help="Output from regression model (to pickle from)")
+    parser.add_argument('--model', type=str, required=True, help="Model type", choices=["mlp","gp","rf"])
+    parser.add_argument('--rcp26', type=str, required=True, help="GMT time series of RCP2.6")
+    parser.add_argument('--rcp85', type=str, required=True, help="GMT time series of RCP8.5")
+    args = parser.parse_args()
+    fnm1 = args.rcp26
     df1 = pd.read_csv(fnm1,index_col=0).drop("GMT",axis=1)
-    fnm2 = sys.argv[2]
+    fnm2 = args.rcp85
     df2 = pd.read_csv(fnm2,index_col=0).drop("GMT",axis=1)
-
 
     colors = {
             "rcp26": rcp_colors["AR6-RCP-2.6"],
@@ -95,8 +103,8 @@ def main():
     # This study
     df_rcp26 = df1.loc[2300]
     df_rcp85 = df2.loc[2300]
-    df_rcp45 = pd.read_csv("data/processed/emulator_runs_rcp45.csv",index_col=0).loc[2300]
-    df_rcp60 = pd.read_csv("data/processed/emulator_runs_rcp60.csv",index_col=0).loc[2300]
+    df_rcp45 = pd.read_csv(f"data/processed/{args.model}_emulator_runs_rcp45.csv",index_col=0).loc[2300]
+    df_rcp60 = pd.read_csv(f"data/processed/{args.model}_emulator_runs_rcp60.csv",index_col=0).loc[2300]
     ax2.plot([10.7-8]*2,df_rcp26.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp26"])
     ax2.plot([11.3-8]*2,df_rcp85.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp85"])
     ax2.plot([10.9-8]*2,df_rcp45.quantile([0.025,0.975]),lw=lw,alpha=alpha,color=colors["rcp45"])
@@ -146,7 +154,7 @@ def main():
     #ax2.legend(loc=1)
 
     # PISM ranges
-    fnm_in = sys.argv[3]
+    fnm_in = args.model_output
     with open(fnm_in, "rb") as f:
         [_,_,time_train,_,_,_,ys,_,_] = pickle.load(f)
     #time_train = time_train[time_train<=time[-1]]
@@ -165,8 +173,8 @@ def main():
     ymax = max(ax.get_ylim()[1],ax2.get_ylim()[1])
     ax2.set_ylim(ymin,ymax)
     ax.set_ylim(ymin,ymax)
-    fig.savefig("reports/figures/toe.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig.savefig("reports/figures/toe.pdf",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig.savefig(f"reports/figures/{args.model}_toe.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig.savefig(f"reports/figures/{args.model}_toe.pdf",dpi=300, bbox_inches='tight', pad_inches = 0.01)
 
     plt.show()
 

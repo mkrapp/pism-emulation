@@ -1,0 +1,17 @@
+name: pism-emu
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - ipywidgets
+  - jupyterlab
+  - matplotlib
+  - netCDF4
+  - numpy
+  - pandas
+  - pymc
+  - scikit-learn
+  - scipy
+  - snakemake
+  - tqdm
+  - watermark

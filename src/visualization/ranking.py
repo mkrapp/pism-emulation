@@ -1,9 +1,9 @@
+import argparse
 import numpy as np
 import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
-import sys
 from tqdm import tqdm
 from numpy.random import default_rng
 
@@ -25,13 +25,21 @@ rcp_colors = {
 
 def main():
     # here goes the main part
-    fnm_in = sys.argv[1]
-    with open(fnm_in, "rb") as f:
+    parser = argparse.ArgumentParser(
+            prog='ranking',
+            description='Ranking samples.')
+    parser.add_argument('--model_output', type=str, required=True, help="Output from regression model (to pickle from)")
+    parser.add_argument('--input', type=str, required=True, help="Input file with scenarios (to pickle from)")
+    parser.add_argument('--model', type=str, required=True, help="Model type", choices=["mlp","gp","rf"])
+    #parser.add_argument('--nrandom', type=int, required=True, help="Number of random samples")
+    args = parser.parse_args()
+    fnm_model_output = args.model_output
+    with open(fnm_model_output, "rb") as f:
         [_,parameters,time_train,y_name,miny,maxy,ys,_,df] = pickle.load(f)
 
     t0_train = time_train[0]
 
-    fnm_in = sys.argv[2]
+    fnm_in = args.input
     with open(fnm_in, "rb") as f:
         _,_,scenarios = pickle.load(f)
     start_year = 1970
@@ -43,8 +51,10 @@ def main():
     rcp26 = scenarios['rcp26'].loc[start_year:end_year]
     rcp85 = scenarios['rcp85'].loc[start_year:end_year]
 
-    with open("./models/gp_exact.pkl", "rb") as f:
-        gpe = pickle.load(f)
+    #with open("./models/gp_exact.pkl", "rb") as f:
+    fnm_model = f"./models/{args.model}.pkl"
+    with open(fnm_model, "rb") as f:
+        model = pickle.load(f)
     def model_update(c,scen):
         X = np.zeros((nt,n_params+3))
         this_forc = scen["global_mean_temperature"]
@@ -55,7 +65,7 @@ def main():
         for i,t in enumerate(time):
             X[i,:n_params] = c
             X[i,n_params:] = [x1.loc[t],x2.loc[t],x3.loc[t]]
-        y_pred = gpe.predict(X)
+        y_pred = model.predict(X)
         idx_diff = time0-start_year
         y_pred = y_pred - y_pred[idx_diff]
 
@@ -101,7 +111,7 @@ def main():
     y_rcp26 = ys[:n,:len(time_train)]
     y_rcp85 = ys[n:,:len(time_train)]
 
-    df_hist_matched = pd.read_csv("data/processed/emulator_runs_pism_matched.csv",index_col=0).T
+    df_hist_matched = pd.read_csv(f"data/processed/{args.model}_emulator_runs_pism_matched.csv",index_col=0).T
     print(df_hist_matched.index)
 
     print(df)
@@ -258,8 +268,8 @@ def main():
     #ax1.legend(loc=2)
 
     fig1.tight_layout()
-    fig1.savefig("reports/figures/gp_constrain_slr_pism.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
-    fig.savefig("reports/figures/gp_constrain_slr_pism_ranking.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig1.savefig(f"reports/figures/{args.model}_constrain_slr_pism.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
+    fig.savefig(f"reports/figures/{args.model}_constrain_slr_pism_ranking.png",dpi=300, bbox_inches='tight', pad_inches = 0.01)
     plt.show()
 
 if __name__ == "__main__":
